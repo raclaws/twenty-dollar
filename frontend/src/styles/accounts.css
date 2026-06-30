@@ -1,0 +1,199 @@
+/* ─── Accounts View ─── */
+.accounts-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.accounts-view__topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-6);
+  background: var(--c-mantle);
+  border-bottom: 1px solid var(--c-surface0);
+}
+
+.accounts-view__title {
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-semibold);
+  color: var(--c-text);
+}
+
+.accounts-view__picker {
+  width: 200px;
+}
+
+.accounts-view__hint {
+  padding: var(--sp-2) var(--sp-6);
+  font-size: var(--fs-sm);
+  color: var(--c-overlay0);
+}
+
+/* ─── Accounts List (card view) ─── */
+.accounts-table {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: var(--sp-6);
+  gap: var(--sp-3);
+}
+
+.accounts-table__header {
+  display: flex;
+  align-items: center;
+  height: var(--row-h);
+  padding: 0 var(--sp-4);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--c-overlay0);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.accounts-table__col--name { flex: 1; min-width: 200px; }
+.accounts-table__col--type { width: 120px; }
+.accounts-table__col--balance { width: 130px; text-align: right; }
+.accounts-table__col--count { width: 100px; text-align: right; }
+
+.accounts-table__body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.accounts-table__row {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 var(--sp-4);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.accounts-table__row:hover {
+  background: var(--c-surface0);
+}
+
+.accounts-table__row .accounts-table__col--name {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  color: var(--c-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  position: relative;
+}
+
+.accounts-table__row .accounts-table__col--type {
+  font-size: var(--fs-md);
+  color: var(--c-subtext0);
+  text-transform: capitalize;
+  position: relative;
+  overflow: visible;
+}
+
+.accounts-table__row .accounts-table__col--balance,
+.accounts-table__row .accounts-table__col--count {
+  font-size: var(--fs-md);
+  color: var(--c-subtext0);
+}
+
+.accounts-table__row .accounts-table__col--balance {
+  font-variant-numeric: tabular-nums;
+}
+
+.accounts-table__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  padding: var(--sp-8) var(--sp-4);
+}
+
+.accounts-table__empty-text {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
+  color: var(--c-subtext0);
+}
+
+.accounts-table__empty-hint {
+  font-size: var(--fs-sm);
+  color: var(--c-overlay0);
+}
+
+/* ─── Settings View ─── */
+.settings-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.settings-view__topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-4) var(--sp-6);
+  background: var(--c-mantle);
+  border-bottom: 1px solid var(--c-surface0);
+}
+
+.settings-view__title {
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+  color: var(--c-text);
+}
+
+/* ─── Transfer Dialog ─── */
+.transfer-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.transfer-dialog {
+  background: var(--c-base);
+  border: 1px solid var(--c-surface0);
+  border-radius: var(--r-lg);
+  padding: var(--sp-6);
+  width: 360px;
+  max-width: 90vw;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.transfer-dialog__title {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  color: var(--c-text);
+}
+
+.transfer-dialog__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.transfer-dialog__label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  font-size: var(--fs-sm);
+  color: var(--c-subtext0);
+}
+
+.transfer-dialog__label .input {
+  height: 34px;
+}
+
+.transfer-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-3);
+}

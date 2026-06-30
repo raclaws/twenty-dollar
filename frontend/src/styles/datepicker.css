@@ -1,0 +1,170 @@
+/* ─── DatePicker ─── */
+.date-picker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 201;
+  background: var(--c-mantle);
+  border: 1px solid var(--c-surface0);
+  border-radius: var(--r-lg);
+  padding: var(--sp-2);
+  box-shadow: var(--shadow-md);
+  width: 240px;
+  outline: none;
+  animation: dialog-in var(--dur-fast) var(--ease);
+}
+
+.dp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-2);
+}
+
+.dp-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-sm);
+  color: var(--c-overlay0);
+  cursor: pointer;
+  font-size: var(--fs-lg);
+}
+
+.dp-nav:hover {
+  background: var(--c-surface0);
+  color: var(--c-text);
+}
+
+.dp-title {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--c-text);
+}
+
+.dp-title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+.dp-title-btn {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  font-family: var(--font);
+  color: var(--c-text);
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.dp-title-btn:hover {
+  background: var(--c-surface0);
+  color: var(--c-interactive);
+}
+
+.dp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.dp-weekday {
+  font-size: 10px;
+  color: var(--c-overlay0);
+  text-align: center;
+  padding: 2px 0 4px;
+}
+
+.dp-empty {
+  padding: 4px;
+}
+
+.dp-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 0 auto;
+  border-radius: var(--r-sm);
+  color: var(--c-subtext0);
+  font-size: var(--fs-xs);
+  font-family: var(--font);
+  cursor: pointer;
+}
+
+.dp-day:hover {
+  background: var(--c-surface0);
+  color: var(--c-text);
+}
+
+.dp-selected {
+  background: var(--c-interactive) !important;
+  color: var(--c-crust) !important;
+  font-weight: var(--fw-bold);
+}
+
+.dp-today {
+  border: 1px solid var(--c-surface2);
+}
+
+.dp-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--sp-2);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--c-surface0);
+}
+
+.dp-today-btn, .dp-clear-btn {
+  color: var(--c-interactive);
+  font-size: var(--fs-xs);
+  font-family: var(--font);
+  cursor: pointer;
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-sm);
+}
+
+.dp-today-btn:hover, .dp-clear-btn:hover {
+  background: var(--c-surface0);
+}
+
+.dp-clear-btn {
+  color: var(--c-overlay0);
+}
+
+.dp-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.dp-picker-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  border-radius: var(--r-sm);
+  color: var(--c-subtext0);
+  font-size: var(--fs-xs);
+  font-family: var(--font);
+  cursor: pointer;
+}
+
+.dp-picker-cell:hover {
+  background: var(--c-surface0);
+  color: var(--c-text);
+}
+
+.dp-picker-active {
+  background: var(--c-interactive) !important;
+  color: var(--c-crust) !important;
+  font-weight: var(--fw-bold);
+}
+
+.dp-picker-current {
+  border: 1px solid var(--c-surface2);
+}

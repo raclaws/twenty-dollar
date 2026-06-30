@@ -1,0 +1,320 @@
+import { createSignal, Show, type Component } from 'solid-js'
+import MoneyDisplay from '~/components/MoneyDisplay'
+import { PayeePicker, CategoryPicker } from '~/components/Pickers'
+import { DatePicker, MemoCell, AmountInput } from '~/components/CellInputs'
+import { useStore } from '~/App'
+import { createQuery } from '~/lib/solid-binding'
+import { apiPatch } from '~/lib/api'
+import { pushUndo } from '~/lib/undo'
+import type { Record } from '~/lib/sync-engine/types'
+
+type CellField = 'date' | 'payee' | 'category' | 'amount'
+
+const FIELD_ORDER: CellField[] = ['date', 'payee', 'category', 'amount']
+
+interface TransactionRowProps {
+  tx: Record
+  balance: number
+  onContextMenu: (e: MouseEvent, tx: Record) => void
+  showAccount?: boolean
+  hideCategory?: boolean
+  hideBalance?: boolean
+  editingRowId?: string | null
+  onEditStart?: (id: string) => void
+  onEditEnd?: () => void
+  knownPayees: { id: string; name: string }[]
+}
+
+const TransactionRow: Component<TransactionRowProps> = (props) => {
+  const { raw, reactive } = useStore()
+  const categoryGroups = createQuery(reactive, 'category_groups')
+  const categories = createQuery(reactive, 'categories')
+  const accounts = createQuery(reactive, 'accounts')
+  const payees = createQuery(reactive, 'payees')
+  const [activeCell, setActiveCell] = createSignal<CellField | null>(null)
+
+  const payeeName = () => {
+    const pid = props.tx.payee_id as string | null
+    if (!pid) return ''
+    const p = payees().find(p => p.id === pid)
+    return p ? p.name as string : ''
+  }
+
+  const isTransfer = () => {
+    const pid = props.tx.payee_id as string | null
+    if (!pid) return false
+    const p = payees().find(p => p.id === pid)
+    return p ? (p.type as string) === 'account' : false
+  }
+
+  const categoryName = () => {
+    const catId = props.tx.category_id as string | null
+    if (!catId) return ''
+    const cat = categories().find(c => c.id === catId)
+    return cat ? cat.name as string : ''
+  }
+
+  const accountName = () => {
+    const accId = props.tx.account_id as string
+    const acc = accounts().find(a => a.id === accId)
+    return acc ? acc.name as string : ''
+  }
+
+  function isActive() {
+    return props.editingRowId === (props.tx.id as string)
+  }
+
+  function startCell(field: CellField, e?: MouseEvent) {
+    if (field === 'category' && isTransfer()) return
+    if (e) e.stopPropagation()
+    if (props.onEditStart) props.onEditStart(props.tx.id as string)
+    setActiveCell(field)
+  }
+
+  function endCell() {
+    setActiveCell(null)
+    if (props.onEditEnd) props.onEditEnd()
+  }
+
+  function advanceCell(current: CellField) {
+    const idx = FIELD_ORDER.indexOf(current)
+    let next = FIELD_ORDER[idx + 1]
+    if (next === 'category' && isTransfer()) next = FIELD_ORDER[idx + 2]
+    if (next) {
+      setActiveCell(next)
+    } else {
+      endCell()
+    }
+  }
+
+  async function commitField(field: string, newValue: unknown) {
+    if (newValue === props.tx[field]) return
+    const id = props.tx.id as string
+    const oldRecord = { ...props.tx }
+    const updated = { ...props.tx, [field]: newValue }
+
+    await raw.put('transactions', updated)
+    reactive.notify('transactions')
+
+    // Propagate to mirror if linked
+    const linkedId = props.tx.linked_id as string | null
+    let oldLinked: Record | undefined
+    if (linkedId && (field === 'date' || field === 'amount' || field === 'memo')) {
+      oldLinked = await raw.get('transactions', linkedId)
+      if (oldLinked) {
+        const mirrorValue = field === 'amount' ? -(newValue as number) : newValue
+        await raw.put('transactions', { ...oldLinked, [field]: mirrorValue })
+        reactive.notify('transactions')
+      }
+    }
+
+    apiPatch(`/api/transactions/${id}`, { [field]: newValue }).catch(() => {})
+
+    pushUndo({
+      description: `Edited ${field}: ${payeeName() || 'transaction'}`,
+      async undo() {
+        await raw.put('transactions', oldRecord)
+        if (oldLinked) await raw.put('transactions', oldLinked)
+        reactive.notify('transactions')
+      },
+      async redo() {
+        await raw.put('transactions', updated)
+        if (oldLinked && (field === 'date' || field === 'amount' || field === 'memo')) {
+          const mirrorValue = field === 'amount' ? -(newValue as number) : newValue
+          await raw.put('transactions', { ...oldLinked, [field]: mirrorValue })
+        }
+        reactive.notify('transactions')
+      },
+    })
+  }
+
+  async function commitPayee(payeeId: string) {
+    if (payeeId === '__none__') {
+      if (props.tx.payee_id === null || props.tx.payee_id === undefined) return
+      await commitField('payee_id', null)
+      return
+    }
+    const oldPayeeId = props.tx.payee_id as string | null
+    if (payeeId === oldPayeeId) return
+
+    const id = props.tx.id as string
+    const oldRecord = { ...props.tx }
+
+    // Check if new payee is an account (creates transfer)
+    const newPayee = payees().find(p => p.id === payeeId)
+    const isNewTransfer = newPayee && (newPayee.type as string) === 'account'
+    const wasTransfer = isTransfer()
+
+    if (isNewTransfer && !wasTransfer) {
+      // Convert to transfer: create mirror transaction
+      const destAccountId = newPayee.account_id as string
+      const sourcePayee = payees().find(p => (p.account_id as string) === (props.tx.account_id as string))
+      const mirrorId = crypto.randomUUID()
+      const now = new Date().toISOString()
+
+      const updated = { ...props.tx, payee_id: payeeId, category_id: null, linked_id: mirrorId }
+      const mirror: Record = {
+        id: mirrorId,
+        account_id: destAccountId,
+        payee_id: sourcePayee?.id ?? null,
+        category_id: null,
+        date: props.tx.date as string,
+        amount: -(props.tx.amount as number),
+        memo: props.tx.memo,
+        cleared: 0,
+        linked_id: id,
+        created_at: now,
+      }
+
+      await raw.put('transactions', updated)
+      await raw.put('transactions', mirror)
+      reactive.notify('transactions')
+
+      pushUndo({
+        description: `Converted to transfer → ${newPayee.name}`,
+        async undo() {
+          await raw.put('transactions', oldRecord)
+          await raw.delete('transactions', mirrorId)
+          reactive.notify('transactions')
+        },
+        async redo() {
+          await raw.put('transactions', updated)
+          await raw.put('transactions', mirror)
+          reactive.notify('transactions')
+        },
+      })
+    } else if (!isNewTransfer && wasTransfer) {
+      // Convert from transfer to normal: delete mirror
+      const linkedId = props.tx.linked_id as string
+      const oldLinked = await raw.get('transactions', linkedId)
+      const updated = { ...props.tx, payee_id: payeeId, linked_id: null }
+
+      await raw.put('transactions', updated)
+      if (oldLinked) await raw.delete('transactions', linkedId)
+      reactive.notify('transactions')
+
+      pushUndo({
+        description: `Converted from transfer to ${newPayee?.name ?? 'payee'}`,
+        async undo() {
+          await raw.put('transactions', oldRecord)
+          if (oldLinked) await raw.put('transactions', oldLinked)
+          reactive.notify('transactions')
+        },
+        async redo() {
+          await raw.put('transactions', updated)
+          if (oldLinked) await raw.delete('transactions', linkedId)
+          reactive.notify('transactions')
+        },
+      })
+    } else {
+      // Simple payee change (both normal, or both transfer to different account)
+      await commitField('payee_id', payeeId)
+    }
+  }
+
+  async function toggleCleared(e: MouseEvent) {
+    e.stopPropagation()
+    const id = props.tx.id as string
+    const oldCleared = props.tx.cleared as number
+    const newCleared = oldCleared ? 0 : 1
+    const updated = { ...props.tx, cleared: newCleared }
+    await raw.put('transactions', updated)
+    reactive.notify('transactions')
+    apiPatch(`/api/transactions/${id}`, { cleared: !!newCleared }).catch(() => {})
+  }
+
+  return (
+    <div
+      class={`txn-row ${(props.tx.cleared as number) ? 'txn-row--cleared' : ''} ${(props.tx.reconciled_at as string) ? 'txn-row--reconciled' : ''}`}
+      onContextMenu={(e) => props.onContextMenu(e, props.tx)}
+    >
+      {/* Select (placeholder) */}
+      <div class="txn-row__check" />
+
+      {/* Date cell */}
+      <div class="txn-row__date cell--text" onClick={(e) => startCell('date', e)} style={{ position: 'relative' }}>
+        <Show when={activeCell() === 'date' && isActive()} fallback={<span>{props.tx.date as string}</span>}>
+          <DatePicker
+            value={props.tx.date as string}
+            onCommit={(v) => { if (v !== (props.tx.date as string)) commitField('date', v); endCell() }}
+            onCancel={endCell}
+          />
+        </Show>
+      </div>
+
+      {/* Account (read-only display) */}
+      <Show when={props.showAccount}>
+        <div class="txn-row__account">{accountName()}</div>
+      </Show>
+
+      {/* Payee cell */}
+      <div class="txn-row__payee cell--select" onClick={(e) => startCell('payee', e)}>
+        <Show when={activeCell() === 'payee' && isActive()} fallback={<span>{payeeName()}</span>}>
+          <PayeePicker
+            value={props.tx.payee_id as string ?? ''}
+            knownPayees={props.knownPayees}
+            accounts={accounts().filter(a => !(a.deleted_at as string) && a.id !== props.tx.account_id)}
+            onPick={(payeeId) => { commitPayee(payeeId); endCell() }}
+            onCancel={endCell}
+            onTab={() => advanceCell('payee')}
+          />
+        </Show>
+      </div>
+
+      {/* Category cell */}
+      <Show when={!props.hideCategory}>
+      <Show when={isTransfer()} fallback={
+        <div class="txn-row__category cell--select" onClick={(e) => startCell('category', e)}>
+          <Show when={activeCell() === 'category' && isActive()} fallback={<span>{categoryName()}</span>}>
+            <CategoryPicker
+              value={(props.tx.category_id as string) ?? ''}
+              groups={categoryGroups()}
+              categories={categories()}
+              onPick={(catId) => { const nv = catId === '__none__' ? null : (catId || null); if (nv !== ((props.tx.category_id as string) ?? null)) commitField('category_id', nv); endCell() }}
+              onCancel={endCell}
+              onTab={() => advanceCell('category')}
+            />
+          </Show>
+        </div>
+      }>
+        <div class="txn-row__category cell--computed" title="Transfers are not categorized">
+          <span class="txn-row__transfer-label">Transfer</span>
+        </div>
+      </Show>
+      </Show>
+
+      {/* Memo cell */}
+      <div class="txn-row__memo cell--memo">
+        <MemoCell
+          value={(props.tx.memo as string) ?? ''}
+          onCommit={(v) => { const nv = v.trim() || null; if (nv !== ((props.tx.memo as string) ?? null)) commitField('memo', nv) }}
+        />
+      </div>
+
+      {/* Amount cell */}
+      <div class="txn-row__amount cell--number" onClick={(e) => startCell('amount', e)}>
+        <Show when={activeCell() === 'amount' && isActive()} fallback={<MoneyDisplay amount={props.tx.amount as number} />}>
+          <AmountInput
+            amount={props.tx.amount as number}
+            onCommit={(newAmt) => { if (newAmt !== (props.tx.amount as number)) commitField('amount', newAmt); endCell() }}
+            onCancel={endCell}
+          />
+        </Show>
+      </div>
+
+      {/* Balance (read-only) */}
+      <Show when={!props.hideBalance}>
+      <div class={`txn-row__balance cell--computed ${!(props.tx.cleared as number) ? 'txn-row__balance--uncleared' : ''}`}>
+        <MoneyDisplay amount={props.balance} unsigned />
+      </div>
+      </Show>
+
+      {/* Cleared/Reconciled status (far right) */}
+      <div class="txn-row__status" onClick={toggleCleared}>
+        <span class={`txn-row__status-dot ${(props.tx.reconciled_at as string) ? 'txn-row__status-dot--reconciled' : (props.tx.cleared as number) ? 'txn-row__status-dot--cleared' : ''}`} />
+      </div>
+    </div>
+  )
+}
+
+export default TransactionRow
