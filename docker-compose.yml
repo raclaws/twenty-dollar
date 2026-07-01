@@ -1,16 +1,12 @@
-# Default: expects pre-built binary at target/release/twenty-dollar
-# For full in-Docker build, use: docker compose -f docker-compose.full.yml up -d --build
 services:
   app:
-    build: .
+    image: ghcr.io/raclaws/twenty-dollar:master
     container_name: twenty-dollar
     restart: unless-stopped
     ports:
       - "${PORT:-3001}:3001"
     volumes:
       - ${DATA_DIR:-./data}:/app/data
-    env_file:
-      - .env
     environment:
       - DATABASE_PATH=/app/data/twenty_dollar.db
       - STATIC_DIR=/app/static
