@@ -1,9 +1,8 @@
-/* Parent cell and row must not clip the picker */
+/* Parent cell z-index for picker context */
 .cell--select:has(.entity-picker),
 .cell--text:has(.date-picker),
 .txn-row:has(.entity-picker),
 .txn-row:has(.date-picker) {
-  overflow: visible !important;
   z-index: 201;
 }
 
@@ -15,12 +14,11 @@
 }
 
 .entity-picker {
-  position: absolute;
-  top: 0;
-  left: 0;
+  position: fixed;
   z-index: 201;
-  min-width: 100%;
+  min-width: 200px;
   width: max-content;
+  max-width: 320px;
   max-height: 320px;
   background: var(--c-mantle);
   border: 1px solid var(--c-surface0);

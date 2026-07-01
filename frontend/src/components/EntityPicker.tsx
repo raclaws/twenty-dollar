@@ -43,8 +43,10 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
   const [activeIndex, setActiveIndex] = createSignal(0)
   const [creatingIn, setCreatingIn] = createSignal<string | null>(null)
   const [newName, setNewName] = createSignal('')
+  const [pos, setPos] = createSignal<{ top: number; left: number }>({ top: 0, left: 0 })
   let searchRef: HTMLInputElement | undefined
   let listRef: HTMLDivElement | undefined
+  let pickerRef: HTMLDivElement | undefined
 
   const flatItems = createMemo((): FlatItem[] => {
     const q = query().toLowerCase()
@@ -174,6 +176,17 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
         const idx = flatItems().findIndex(item => item.id === props.value)
         if (idx >= 0) setActiveIndex(idx)
       }
+      // Position from parent element
+      if (pickerRef) {
+        const parent = pickerRef.parentElement
+        if (parent) {
+          const rect = parent.getBoundingClientRect()
+          const pickerHeight = 320
+          const spaceBelow = window.innerHeight - rect.bottom
+          const top = spaceBelow >= pickerHeight ? rect.bottom : rect.top - pickerHeight
+          setPos({ top: Math.max(4, top), left: rect.left })
+        }
+      }
     }, 0)
 
     function globalEscape(e: KeyboardEvent) {
@@ -202,7 +215,7 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
   })
 
   return (
-    <div class="entity-picker" onKeyDown={handleKeyDown} onMouseDown={(e) => e.stopPropagation()}>
+    <div ref={pickerRef} class="entity-picker" style={{ position: 'fixed', top: `${pos().top}px`, left: `${pos().left}px` }} onKeyDown={handleKeyDown} onMouseDown={(e) => e.stopPropagation()}>
       <input
         class="entity-picker__search"
         type="text"
