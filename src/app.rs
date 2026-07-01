@@ -105,6 +105,8 @@ pub fn build_router(pool: DbPool) -> Router {
         .route("/api/schedules/{id}", patch(handlers::schedules::update))
         .route("/api/schedules/{id}", delete(handlers::schedules::delete))
         .route("/api/schedules/generate", post(handlers::schedules::generate))
+        // Reset
+        .route("/api/reset", post(handlers::reset::reset_data))
         .route_layer(middleware::from_fn_with_state(state.clone(), require_auth));
 
     let static_dir = std::env::var("STATIC_DIR").unwrap_or_else(|_| "./frontend/dist".to_string());

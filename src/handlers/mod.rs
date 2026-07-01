@@ -4,6 +4,7 @@ pub mod budget;
 pub mod categories;
 pub mod import_export;
 pub mod payees;
+pub mod reset;
 pub mod schedules;
 pub mod transactions;
 pub mod transfers;

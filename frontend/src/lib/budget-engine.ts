@@ -146,7 +146,7 @@ export function computeTargetStatus(
 function computeTotalIncome(transactions: Record[], endDate: string): number {
   let total = 0
   for (const tx of transactions) {
-    if (tx.category_id == null && (tx.amount as number) > 0 && (tx.date as string) <= endDate) {
+    if ((tx.amount as number) > 0 && (tx.date as string) <= endDate && !tx.linked_id) {
       total += tx.amount as number
     }
   }

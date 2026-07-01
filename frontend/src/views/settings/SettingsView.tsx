@@ -1,6 +1,7 @@
 import { createSignal, Show, type Component } from 'solid-js'
 import { getCurrencyCode, setCurrencyCode, CURRENCIES } from '~/lib/format'
 import { useStore } from '~/App'
+import { apiPost } from '~/lib/api'
 import EntityPicker, { type EntityPickerSection } from '~/components/EntityPicker'
 
 const SettingsView: Component = () => {
@@ -14,6 +15,10 @@ const SettingsView: Component = () => {
   async function clearSampleData() {
     setClearing(true)
     try {
+      // Clear server-side first
+      await apiPost('/api/reset', {})
+
+      // Clear local IDB
       await raw.clear('transactions')
       await raw.clear('split_entries')
       await raw.clear('accounts')
