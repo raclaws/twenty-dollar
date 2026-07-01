@@ -43,7 +43,7 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
   const [activeIndex, setActiveIndex] = createSignal(0)
   const [creatingIn, setCreatingIn] = createSignal<string | null>(null)
   const [newName, setNewName] = createSignal('')
-  const [pos, setPos] = createSignal<{ top: number; left: number }>({ top: 0, left: 0 })
+  const [pos, setPos] = createSignal<{ top: number; left: number } | null>(null)
   let searchRef: HTMLInputElement | undefined
   let listRef: HTMLDivElement | undefined
   let pickerRef: HTMLDivElement | undefined
@@ -176,17 +176,6 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
         const idx = flatItems().findIndex(item => item.id === props.value)
         if (idx >= 0) setActiveIndex(idx)
       }
-      // Position from parent element
-      if (pickerRef) {
-        const parent = pickerRef.parentElement
-        if (parent) {
-          const rect = parent.getBoundingClientRect()
-          const pickerHeight = 320
-          const spaceBelow = window.innerHeight - rect.bottom
-          const top = spaceBelow >= pickerHeight ? rect.bottom : rect.top - pickerHeight
-          setPos({ top: Math.max(4, top), left: rect.left })
-        }
-      }
     }, 0)
 
     function globalEscape(e: KeyboardEvent) {
@@ -214,8 +203,23 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
     })
   })
 
+  function initRef(el: HTMLDivElement) {
+    pickerRef = el
+    requestAnimationFrame(() => {
+      const parent = el.parentElement
+      if (parent) {
+        const rect = parent.getBoundingClientRect()
+        const pickerHeight = Math.min(320, window.innerHeight - 8)
+        const spaceBelow = window.innerHeight - rect.bottom
+        const top = spaceBelow >= pickerHeight ? rect.bottom + 2 : rect.top - pickerHeight - 2
+        const left = Math.min(rect.left, window.innerWidth - 240)
+        setPos({ top: Math.max(4, top), left: Math.max(4, left) })
+      }
+    })
+  }
+
   return (
-    <div ref={pickerRef} class="entity-picker" style={{ position: 'fixed', top: `${pos().top}px`, left: `${pos().left}px` }} onKeyDown={handleKeyDown} onMouseDown={(e) => e.stopPropagation()}>
+    <div ref={initRef} class="entity-picker" style={{ position: 'fixed', top: `${pos()?.top ?? -9999}px`, left: `${pos()?.left ?? -9999}px`, visibility: pos() ? 'visible' : 'hidden' }} onKeyDown={handleKeyDown} onMouseDown={(e) => e.stopPropagation()}>
       <input
         class="entity-picker__search"
         type="text"
