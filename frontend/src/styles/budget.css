@@ -124,7 +124,7 @@
 .budget-grid {
   flex: 1;
   overflow-y: auto;
-  padding: var(--sp-6);
+  padding: 0 var(--sp-6) var(--sp-6);
 }
 
 .budget-grid__header {
@@ -141,6 +141,7 @@
   top: 0;
   z-index: 10;
   background: var(--c-base);
+  border-bottom: 1px solid var(--c-surface0);
 }
 
 .budget-grid__col--name {

@@ -67,6 +67,8 @@
   flex-direction: column;
   gap: var(--sp-8);
   max-width: 640px;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .settings-section__title {

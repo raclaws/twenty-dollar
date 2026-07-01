@@ -1,5 +1,5 @@
 import { createSignal, createMemo, onMount, onCleanup, Show, For, type Component } from 'solid-js'
-import { ChevronUp, ChevronDown, ChevronsUpDown, Layers } from 'lucide-solid'
+import { ChevronUp, ChevronDown, ChevronsUpDown, Layers, CircleCheck } from 'lucide-solid'
 import { useStore } from '~/App'
 import { createQuery } from '~/lib/solid-binding'
 import { apiPatch, apiDelete } from '~/lib/api'
@@ -28,15 +28,15 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
   const categories = createQuery(reactive, 'categories')
 
   // Sort & filter state
-  type SortField = 'date' | 'payee' | 'amount'
+  type SortField = 'date' | 'payee' | 'category' | 'amount'
   const [sortField, setSortField] = createSignal<SortField>('date')
-  const [sortDir, setSortDir] = createSignal<'asc' | 'desc'>('asc')
+  const [sortDir, setSortDir] = createSignal<'asc' | 'desc'>('desc')
   const [categoryFilter, setCategoryFilter] = createSignal<Set<string>>(new Set())
   const [showCatFilter, setShowCatFilter] = createSignal(false)
 
   // Grouping state
-  type GroupByField = 'none' | 'date' | 'payee' | 'category' | 'account'
-  const [groupBy, setGroupBy] = createSignal<GroupByField>('none')
+  type GroupByField = 'none' | 'month' | 'date' | 'payee' | 'category' | 'account'
+  const [groupBy, setGroupBy] = createSignal<GroupByField>('month')
   const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set())
   const [showGroupMenu, setShowGroupMenu] = createSignal(false)
 
@@ -54,6 +54,16 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
     } else {
       setSortField(field)
       setSortDir('asc')
+    }
+  }
+
+  function handleHeaderClick(field: SortField, e: MouseEvent) {
+    if (e.shiftKey) {
+      const groupField: GroupByField = field === 'date' ? 'month' : field === 'amount' ? 'none' : field
+      setGroupBy(prev => prev === groupField ? 'none' : groupField)
+      setCollapsed(new Set())
+    } else {
+      toggleSort(field)
     }
   }
 
@@ -80,6 +90,18 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
     return payees().filter(p => !(p.account_id as string)).map(p => ({ id: p.id as string, name: p.name as string }))
   })
 
+  const categoryNameMap = createMemo(() => {
+    const map = new Map<string, string>()
+    for (const c of categories()) map.set(c.id as string, c.name as string)
+    return map
+  })
+
+  const accountNameMap = createMemo(() => {
+    const map = new Map<string, string>()
+    for (const a of accounts()) map.set(a.id as string, a.name as string)
+    return map
+  })
+
   const sorted = createMemo(() => {
     let txns = allTransactions()
     if (props.accountId) {
@@ -99,6 +121,7 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
     const field = sortField()
     const dir = sortDir()
     const nameMap = payeeNameMap()
+    const catMap = categoryNameMap()
     return filtered.slice().sort((a, b) => {
       let cmp = 0
       if (field === 'date') {
@@ -108,11 +131,22 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
         const nameA = nameMap.get(a.payee_id as string) ?? ''
         const nameB = nameMap.get(b.payee_id as string) ?? ''
         cmp = nameA.localeCompare(nameB)
+      } else if (field === 'category') {
+        const catA = catMap.get((a.category_id as string) ?? '') ?? ''
+        const catB = catMap.get((b.category_id as string) ?? '') ?? ''
+        cmp = catA.localeCompare(catB)
       } else if (field === 'amount') {
         cmp = (a.amount as number) - (b.amount as number)
       }
       return dir === 'asc' ? cmp : -cmp
     })
+  })
+
+  const clearedStats = createMemo(() => {
+    const txns = sorted()
+    const total = txns.length
+    const cleared = txns.filter(tx => (tx.cleared as number) === 1).length
+    return { cleared, total }
   })
 
   const runningBalances = createMemo(() => {
@@ -127,17 +161,6 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
   })
 
   // Grouping configs
-  const categoryNameMap = createMemo(() => {
-    const map = new Map<string, string>()
-    for (const c of categories()) map.set(c.id as string, c.name as string)
-    return map
-  })
-
-  const accountNameMap = createMemo(() => {
-    const map = new Map<string, string>()
-    for (const a of accounts()) map.set(a.id as string, a.name as string)
-    return map
-  })
 
   function getGroupConfig(): GroupConfig<Record> | null {
     const field = groupBy()
@@ -145,8 +168,10 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
     const pMap = payeeNameMap()
     const cMap = categoryNameMap()
     const aMap = accountNameMap()
+    const descending = sortDir() === 'desc'
     switch (field) {
-      case 'date': return { key: (tx) => (tx.date as string) ?? '', label: (k) => k || 'No date', sort: (a, b) => a.localeCompare(b) }
+      case 'month': return { key: (tx) => ((tx.date as string) ?? '').slice(0, 7), label: (k) => k || 'No date', sort: (a, b) => descending ? b.localeCompare(a) : a.localeCompare(b) }
+      case 'date': return { key: (tx) => (tx.date as string) ?? '', label: (k) => k || 'No date', sort: (a, b) => descending ? b.localeCompare(a) : a.localeCompare(b) }
       case 'payee': return { key: (tx) => (tx.payee_id as string) ?? '', label: (k) => k ? (pMap.get(k) ?? 'Unknown') : 'No payee' }
       case 'category': return { key: (tx) => (tx.category_id as string) ?? '', label: (k) => k ? (cMap.get(k) ?? 'Unknown') : 'Uncategorized' }
       case 'account': return { key: (tx) => (tx.account_id as string) ?? '', label: (k) => k ? (aMap.get(k) ?? 'Unknown') : 'No account' }
@@ -154,15 +179,15 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
   }
 
   type VirtualItem =
-    | { type: 'header'; key: string; label: string; count: number; aggregate: number }
-    | { type: 'row'; tx: Record; balance: number }
+    | { type: 'header'; key: string; label: string; count: number; aggregate: number; cleared: number }
+    | { type: 'row'; tx: Record; balance: number; txId: string }
 
   const virtualItems = createMemo((): VirtualItem[] => {
     const txns = sorted()
     const config = getGroupConfig()
     if (!config) {
       const balances = runningBalances()
-      return txns.map((tx, i) => ({ type: 'row', tx, balance: balances[i] }))
+      return txns.map((tx, i) => ({ type: 'row', tx, balance: balances[i], txId: tx.id as string }))
     }
 
     const groups = groupItems(txns, config)
@@ -172,12 +197,13 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
 
     for (const group of groups) {
       const aggregate = group.items.reduce((sum, tx) => sum + (tx.amount as number), 0)
-      items.push({ type: 'header', key: group.key, label: group.label, count: group.items.length, aggregate })
+      const cleared = group.items.filter(tx => (tx.cleared as number) === 1).length
+      items.push({ type: 'header', key: group.key, label: group.label, count: group.items.length, aggregate, cleared })
 
       if (!collapsedSet.has(group.key)) {
         for (const tx of group.items) {
           runningTotal += tx.amount as number
-          items.push({ type: 'row', tx, balance: runningTotal })
+          items.push({ type: 'row', tx, balance: runningTotal, txId: tx.id as string })
         }
       } else {
         for (const tx of group.items) {
@@ -317,52 +343,6 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
         <AddTransactionRow accountId={props.accountId!} />
       </Show>
 
-      <div class="txn-table__header">
-        <div class="txn-table__col txn-table__col--check">
-          <span class={`txn-table__group-toggle ${groupBy() !== 'none' ? 'txn-table__group-toggle--active' : ''}`} onClick={(e) => { e.stopPropagation(); setShowGroupMenu(!showGroupMenu()) }} title="Group by...">
-            <Layers size={12} />
-          </span>
-          <Show when={showGroupMenu()}>
-            <div class="txn-table__group-menu" onClick={(e) => e.stopPropagation()}>
-              <div class={`ctx-menu__item ${groupBy() === 'none' ? 'ctx-menu__item--active' : ''}`} onClick={() => { setGroupBy('none'); setCollapsed(new Set()); setShowGroupMenu(false) }}>None</div>
-              <div class={`ctx-menu__item ${groupBy() === 'date' ? 'ctx-menu__item--active' : ''}`} onClick={() => { setGroupBy('date'); setCollapsed(new Set()); setShowGroupMenu(false) }}>Date</div>
-              <div class={`ctx-menu__item ${groupBy() === 'payee' ? 'ctx-menu__item--active' : ''}`} onClick={() => { setGroupBy('payee'); setCollapsed(new Set()); setShowGroupMenu(false) }}>Payee</div>
-              <Show when={!props.compact}>
-                <div class={`ctx-menu__item ${groupBy() === 'category' ? 'ctx-menu__item--active' : ''}`} onClick={() => { setGroupBy('category'); setCollapsed(new Set()); setShowGroupMenu(false) }}>Category</div>
-              </Show>
-              <Show when={!props.accountId || props.compact}>
-                <div class={`ctx-menu__item ${groupBy() === 'account' ? 'ctx-menu__item--active' : ''}`} onClick={() => { setGroupBy('account'); setCollapsed(new Set()); setShowGroupMenu(false) }}>Account</div>
-              </Show>
-            </div>
-          </Show>
-        </div>
-        <div class={`txn-table__col txn-table__col--date txn-header txn-header--sortable ${sortField() === 'date' ? 'txn-header--active' : ''}`} onClick={() => toggleSort('date')}>
-          DATE <span class="txn-header__indicator">{sortField() === 'date' ? (sortDir() === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />) : <ChevronsUpDown size={10} />}</span>
-        </div>
-        <Show when={!props.accountId || props.compact}>
-          <div class="txn-table__col txn-table__col--account">ACCOUNT</div>
-        </Show>
-        <div class={`txn-table__col txn-table__col--payee txn-header txn-header--sortable ${sortField() === 'payee' ? 'txn-header--active' : ''}`} onClick={() => toggleSort('payee')}>
-          PAYEE <span class="txn-header__indicator">{sortField() === 'payee' ? (sortDir() === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />) : <ChevronsUpDown size={10} />}</span>
-        </div>
-        <Show when={!props.compact}>
-          <div class="txn-table__col txn-table__col--category txn-header txn-header--filterable" onClick={() => setShowCatFilter(!showCatFilter())}>
-            CATEGORY <span class="txn-header__indicator">▾</span>
-            <Show when={categoryFilter().size > 0}>
-              <span class="txn-header__badge">{categoryFilter().size}</span>
-            </Show>
-          </div>
-        </Show>
-        <div class="txn-table__col txn-table__col--memo" />
-        <div class={`txn-table__col txn-table__col--amount txn-header txn-header--sortable ${sortField() === 'amount' ? 'txn-header--active' : ''}`} onClick={() => toggleSort('amount')}>
-          AMOUNT <span class="txn-header__indicator">{sortField() === 'amount' ? (sortDir() === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />) : <ChevronsUpDown size={10} />}</span>
-        </div>
-        <Show when={!props.compact}>
-          <div class="txn-table__col txn-table__col--balance">BALANCE</div>
-        </Show>
-        <div class="txn-table__col txn-table__col--status" />
-      </div>
-
       <Show when={showCatFilter()}>
         <div class="cat-filter" onClick={(e) => e.stopPropagation()}>
           <div class="cat-filter__header">
@@ -399,6 +379,52 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
         ref={containerRef}
         onScroll={handleScroll}
       >
+        <div class="txn-table__header">
+          <div class="txn-table__col txn-table__col--check">
+            <span class={`txn-table__group-toggle ${groupBy() !== 'none' ? 'txn-table__group-toggle--active' : ''}`} onClick={(e) => { e.stopPropagation(); setShowGroupMenu(!showGroupMenu()) }} title="Group by...">
+              <Layers size={12} />
+            </span>
+            <Show when={showGroupMenu()}>
+              <div class="txn-table__group-menu" onClick={(e) => e.stopPropagation()}>
+                <div class={`ctx-menu__item ${groupBy() === 'none' ? 'ctx-menu__item--active' : ''}`} onClick={() => { setGroupBy('none'); setCollapsed(new Set()); setShowGroupMenu(false) }}>None</div>
+                <div class={`ctx-menu__item ${groupBy() === 'month' ? 'ctx-menu__item--active' : ''}`} onClick={() => { setGroupBy('month'); setCollapsed(new Set()); setShowGroupMenu(false) }}>Month</div>
+                <div class={`ctx-menu__item ${groupBy() === 'date' ? 'ctx-menu__item--active' : ''}`} onClick={() => { setGroupBy('date'); setCollapsed(new Set()); setShowGroupMenu(false) }}>Date</div>
+                <div class={`ctx-menu__item ${groupBy() === 'payee' ? 'ctx-menu__item--active' : ''}`} onClick={() => { setGroupBy('payee'); setCollapsed(new Set()); setShowGroupMenu(false) }}>Payee</div>
+                <Show when={!props.compact}>
+                  <div class={`ctx-menu__item ${groupBy() === 'category' ? 'ctx-menu__item--active' : ''}`} onClick={() => { setGroupBy('category'); setCollapsed(new Set()); setShowGroupMenu(false) }}>Category</div>
+                </Show>
+                <Show when={!props.accountId || props.compact}>
+                  <div class={`ctx-menu__item ${groupBy() === 'account' ? 'ctx-menu__item--active' : ''}`} onClick={() => { setGroupBy('account'); setCollapsed(new Set()); setShowGroupMenu(false) }}>Account</div>
+                </Show>
+              </div>
+            </Show>
+          </div>
+          <div class={`txn-table__col txn-table__col--date txn-header txn-header--sortable ${sortField() === 'date' ? 'txn-header--active' : ''}`} onClick={(e) => handleHeaderClick('date', e)}>
+            DATE <span class="txn-header__indicator">{sortField() === 'date' ? (sortDir() === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />) : <ChevronsUpDown size={10} />}</span>
+          </div>
+          <Show when={!props.accountId || props.compact}>
+            <div class="txn-table__col txn-table__col--account">ACCOUNT</div>
+          </Show>
+          <div class={`txn-table__col txn-table__col--payee txn-header txn-header--sortable ${sortField() === 'payee' ? 'txn-header--active' : ''}`} onClick={(e) => handleHeaderClick('payee', e)}>
+            PAYEE <span class="txn-header__indicator">{sortField() === 'payee' ? (sortDir() === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />) : <ChevronsUpDown size={10} />}</span>
+          </div>
+          <Show when={!props.compact}>
+            <div class={`txn-table__col txn-table__col--category txn-header txn-header--sortable ${sortField() === 'category' ? 'txn-header--active' : ''}`} onClick={(e) => handleHeaderClick('category', e)}>
+              CATEGORY
+              <span class="txn-header__indicator">{sortField() === 'category' ? (sortDir() === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />) : <ChevronsUpDown size={10} />}</span>
+            </div>
+          </Show>
+          <div class="txn-table__col txn-table__col--memo" />
+          <div class={`txn-table__col txn-table__col--amount txn-header txn-header--sortable ${sortField() === 'amount' ? 'txn-header--active' : ''}`} onClick={(e) => handleHeaderClick('amount', e)}>
+            AMOUNT <span class="txn-header__indicator">{sortField() === 'amount' ? (sortDir() === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />) : <ChevronsUpDown size={10} />}</span>
+          </div>
+          <Show when={!props.compact}>
+            <div class="txn-table__col txn-table__col--balance">BALANCE</div>
+          </Show>
+          <div class="txn-table__col txn-table__col--status txn-header" title="Cleared">
+            <CircleCheck size={11} />
+          </div>
+        </div>
         <Show when={virtualItems().length > 0} fallback={
           <div class="txn-table__empty">
             <span class="txn-table__empty-text">No transactions yet</span>
@@ -408,11 +434,23 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
           <div style={{ height: `${totalHeight()}px`, position: 'relative' }}>
             <div style={{ transform: `translateY(${visibleRange().start * ROW_HEIGHT}px)` }}>
               <For each={virtualItems().slice(visibleRange().start, visibleRange().end)}>
-                {(item) => (
-                  <Show when={item.type === 'header'} fallback={
+                {(item) => {
+                  if (item.type === 'header') {
+                    return (
+                      <GroupHeader
+                        label={item.label}
+                        count={item.count}
+                        collapsed={collapsed().has(item.key)}
+                        onToggle={() => toggleCollapse(item.key)}
+                        aggregate={<><MoneyDisplay amount={item.aggregate} /><span class="group-header__cleared">{item.cleared}/{item.count}</span></>}
+                      />
+                    )
+                  }
+                  const row = item as VirtualItem & { type: 'row' }
+                  return (
                     <TransactionRow
-                      tx={(item as VirtualItem & { type: 'row' }).tx}
-                      balance={(item as VirtualItem & { type: 'row' }).balance}
+                      tx={row.tx}
+                      balance={row.balance}
                       onContextMenu={handleContextMenu}
                       showAccount={!props.accountId || !!props.compact}
                       hideCategory={!!props.compact}
@@ -422,21 +460,8 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
                       onEditEnd={() => setEditingRowId(null)}
                       knownPayees={knownPayees()}
                     />
-                  }>
-                    {(() => {
-                      const h = item as VirtualItem & { type: 'header' }
-                      return (
-                        <GroupHeader
-                          label={h.label}
-                          count={h.count}
-                          collapsed={collapsed().has(h.key)}
-                          onToggle={() => toggleCollapse(h.key)}
-                          aggregate={<MoneyDisplay amount={h.aggregate} />}
-                        />
-                      )
-                    })()}
-                  </Show>
-                )}
+                  )
+                }}
               </For>
             </div>
           </div>

@@ -78,11 +78,11 @@ const CoverDialog: Component<CoverDialogProps> = (props) => {
 
   const smartAllAmount = createMemo(() => {
     const src = Math.max(0, fromAvailable())
-    const destCat = categories().find(c => c.categoryId === toId())
     const destDeficit = toAvailable() < 0 ? Math.abs(toAvailable()) : 0
+    if (destDeficit > 0) return Math.min(destDeficit, src)
+    const destCat = categories().find(c => c.categoryId === toId())
     const targetGap = destCat?.target?.isUnderfunded ? destCat.target.needed : 0
-    const need = Math.max(destDeficit, targetGap)
-    if (need > 0) return Math.min(need, src)
+    if (targetGap > 0) return Math.min(targetGap, src)
     return src
   })
 
