@@ -6,6 +6,7 @@ import InlineForm from '~/components/InlineForm'
 import IconPicker, { EntityIcon } from '~/components/IconPicker'
 import { useStore } from '~/App'
 import { apiPatch } from '~/lib/api'
+import { clampMenuPosition } from '~/lib/ui'
 import { pushUndo } from '~/lib/undo'
 import CategoryRow from './CategoryRow'
 import type { BudgetGroup } from '~/lib/budget-engine'
@@ -79,7 +80,8 @@ const GroupRow: Component<GroupRowProps> = (props) => {
   function handleContextMenu(e: MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
-    setCtxMenu({ x: e.clientX, y: e.clientY })
+    const pos = clampMenuPosition(e.clientX, e.clientY)
+    setCtxMenu({ x: pos.x, y: pos.y })
   }
 
   async function commitGroupIcon(newIcon: string | null) {

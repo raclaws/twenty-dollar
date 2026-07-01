@@ -97,6 +97,7 @@
 .txn-row__payee-display { display: flex; align-items: center; gap: 6px; }
 .txn-row__category-display { display: flex; align-items: center; gap: 5px; }
 .payee-initial { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; font-size: 10px; font-weight: 700; color: var(--c-base); flex-shrink: 0; line-height: 1; }
+.cell-placeholder { color: var(--c-overlay0); font-style: italic; font-size: var(--fs-sm); }
 .txn-row__category { width: 130px; font-size: var(--fs-md); color: var(--c-subtext0); white-space: nowrap; position: relative; overflow: visible; }
 .txn-row__memo { width: 40px; font-size: var(--fs-sm); color: var(--c-overlay0); overflow: visible; }
 .txn-row__amount { width: 130px; min-width: 130px; max-width: 130px; text-align: right; font-size: var(--fs-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; justify-content: flex-end; }
@@ -601,9 +602,7 @@
 }
 
 .memo-popup {
-  position: absolute;
-  top: 100%;
-  left: 0;
+  position: fixed;
   z-index: 91;
   width: 280px;
   background: var(--c-mantle);

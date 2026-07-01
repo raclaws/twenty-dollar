@@ -251,7 +251,8 @@ const TransactionRow: Component<TransactionRowProps> = (props) => {
         }>
           <DatePicker
             value={props.tx.date as string}
-            onCommit={(v) => { if (v !== (props.tx.date as string)) commitField('date', v); endCell() }}
+            required
+            onCommit={(v) => { if (v && v !== (props.tx.date as string)) commitField('date', v); endCell() }}
             onCancel={endCell}
           />
         </Show>
@@ -266,10 +267,10 @@ const TransactionRow: Component<TransactionRowProps> = (props) => {
       <div class="txn-row__payee cell--select" onClick={(e) => startCell('payee', e)}>
         <Show when={activeCell() === 'payee' && isActive()} fallback={
           <span class="txn-row__payee-display">
-            <Show when={payeeName()}>
+            <Show when={payeeName()} fallback={<span class="cell-placeholder">Payee</span>}>
               <span class="payee-initial" style={{ 'background-color': getInitialColor(payeeName()) }}>{getInitial(payeeName())}</span>
+              <span>{payeeName()}</span>
             </Show>
-            <span>{payeeName()}</span>
           </span>
         }>
           <PayeePicker
@@ -289,10 +290,10 @@ const TransactionRow: Component<TransactionRowProps> = (props) => {
         <div class="txn-row__category cell--select" onClick={(e) => startCell('category', e)}>
           <Show when={activeCell() === 'category' && isActive()} fallback={
             <span class="txn-row__category-display">
-              <Show when={categoryName()}>
+              <Show when={categoryName()} fallback={<span class="cell-placeholder">Category</span>}>
                 <EntityIcon icon={categoryIcon()} name={categoryName()} size={14} />
+                <span>{categoryName()}</span>
               </Show>
-              <span>{categoryName()}</span>
             </span>
           }>
             <CategoryPicker

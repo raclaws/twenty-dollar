@@ -1,4 +1,5 @@
 import { createSignal, createMemo, For, Show, onMount, onCleanup, type Component } from 'solid-js'
+import { Portal } from 'solid-js/web'
 import { EntityIcon } from './IconPicker'
 import { getInitial, getInitialColor } from '~/lib/icons'
 
@@ -47,6 +48,14 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
   let searchRef: HTMLInputElement | undefined
   let listRef: HTMLDivElement | undefined
   let pickerRef: HTMLDivElement | undefined
+
+  function restoreFocus() {
+    requestAnimationFrame(() => {
+      const dialog = triggerEl?.closest('.detail-dialog') as HTMLElement | null
+      if (dialog) { dialog.focus() ; return }
+      triggerEl?.focus()
+    })
+  }
 
   const flatItems = createMemo((): FlatItem[] => {
     const q = query().toLowerCase()
@@ -102,9 +111,11 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
 
   function handlePick(item: FlatItem) {
     if (item.type === 'item') {
+      restoreFocus()
       props.onPick(item.id, item.sectionKey)
     } else if (item.type === 'create') {
       if (query()) {
+        restoreFocus()
         props.onCreate(query(), item.sectionKey)
       } else {
         setCreatingIn(item.sectionKey)
@@ -169,19 +180,22 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
     el?.scrollIntoView({ block: 'nearest' })
   }
 
+  let ready = false
   onMount(() => {
     setTimeout(() => {
+      ready = true
       searchRef?.focus()
       if (props.value) {
         const idx = flatItems().findIndex(item => item.id === props.value)
         if (idx >= 0) setActiveIndex(idx)
       }
-    }, 0)
+    }, 50)
 
     function globalEscape(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         e.stopPropagation()
         e.stopImmediatePropagation()
+        restoreFocus()
         props.onCancel()
       }
     }
@@ -192,25 +206,41 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
     })
   })
 
+  function handleBackdropClick() {
+    if (ready) {
+      restoreFocus()
+      props.onCancel()
+    }
+  }
+
   function initRef(el: HTMLDivElement) {
     pickerRef = el
     requestAnimationFrame(() => {
-      const parent = el.parentElement
-      if (parent) {
-        const rect = parent.getBoundingClientRect()
+      const trigger = triggerEl ?? anchorRef
+      if (trigger) {
+        const rect = trigger.getBoundingClientRect()
         const pickerHeight = Math.min(320, window.innerHeight - 8)
         const spaceBelow = window.innerHeight - rect.bottom
         const top = spaceBelow >= pickerHeight ? rect.bottom + 2 : rect.top - pickerHeight - 2
         const left = Math.min(rect.left, window.innerWidth - 240)
         setPos({ top: Math.max(4, top), left: Math.max(4, left) })
+      } else {
+        // Fallback: center of viewport
+        setPos({ top: window.innerHeight / 2 - 160, left: window.innerWidth / 2 - 120 })
       }
     })
   }
 
+  // Capture trigger element before portal moves us
+  let triggerEl: HTMLElement | null = null
+  let anchorRef: HTMLSpanElement | undefined
+
   return (
     <>
-    <div class="entity-picker-backdrop" onClick={() => props.onCancel()} onMouseDown={(e) => e.stopPropagation()} />
-    <div ref={initRef} class="entity-picker" style={{ position: 'fixed', top: `${pos()?.top ?? -9999}px`, left: `${pos()?.left ?? -9999}px`, visibility: pos() ? 'visible' : 'hidden' }} onKeyDown={handleKeyDown} onMouseDown={(e) => e.stopPropagation()}>
+    <span ref={(el) => { anchorRef = el; triggerEl = el.parentElement }} style={{ position: 'absolute', width: '0', height: '0', overflow: 'hidden' }} />
+    <Portal>
+      <div class="entity-picker-backdrop" onMouseDown={handleBackdropClick} />
+      <div ref={initRef} class="entity-picker" style={{ position: 'fixed', top: `${pos()?.top ?? -9999}px`, left: `${pos()?.left ?? -9999}px`, visibility: pos() ? 'visible' : 'hidden' }} onKeyDown={handleKeyDown} onMouseDown={(e) => e.stopPropagation()}>
       <input
         class="entity-picker__search"
         type="text"
@@ -270,6 +300,7 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
         </div>
       </Show>
     </div>
+    </Portal>
     </>
   )
 }

@@ -7,6 +7,7 @@ import { createQuery } from '~/lib/solid-binding'
 import { formatMoneyUnsigned } from '~/lib/format'
 import { apiPost, apiPatch, apiDelete } from '~/lib/api'
 import { pushUndo } from '~/lib/undo'
+import { clampMenuPosition } from '~/lib/ui'
 import { confirmAction } from '~/components/ConfirmDialog'
 import EntityPicker, { type EntityPickerSection } from '~/components/EntityPicker'
 import type { Record } from '~/lib/sync-engine/types'
@@ -196,7 +197,8 @@ const AccountsView: Component = () => {
   // --- Context menu ---
   function handleContextMenu(e: MouseEvent, account: Record) {
     e.preventDefault()
-    setCtxMenu({ x: e.clientX, y: e.clientY, account })
+    const pos = clampMenuPosition(e.clientX, e.clientY)
+    setCtxMenu({ x: pos.x, y: pos.y, account })
   }
 
   function closeCtxMenu() { setCtxMenu(null) }

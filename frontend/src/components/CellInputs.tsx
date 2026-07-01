@@ -1,4 +1,5 @@
 import { createSignal, Show, For, type Component } from 'solid-js'
+import { Portal } from 'solid-js/web'
 import { ChevronLeft, ChevronRight } from 'lucide-solid'
 import { parseMoney } from '~/lib/format'
 
@@ -8,6 +9,7 @@ export interface DatePickerProps {
   value: string
   onCommit: (val: string) => void
   onCancel: () => void
+  required?: boolean
 }
 
 const DAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
@@ -165,7 +167,7 @@ export function DatePicker(props: DatePickerProps) {
         </div>
         <div class="dp-footer">
           <button class="dp-today-btn" onClick={() => { const n = new Date(); setViewYear(n.getFullYear()); setViewMonth(n.getMonth()); selectDay(n.getDate()) }}>Today</button>
-          <Show when={selectedDate()}>
+          <Show when={selectedDate() && !props.required}>
             <button class="dp-clear-btn" onClick={() => { setSelectedDate(''); props.onCommit('') }}>Clear</button>
           </Show>
         </div>
@@ -184,7 +186,9 @@ export interface MemoCellProps {
 
 export function MemoCell(props: MemoCellProps) {
   const [open, setOpen] = createSignal(false)
+  const [pos, setPos] = createSignal<{ top: number; left: number }>({ top: 0, left: 0 })
   let currentValue = props.value
+  let iconRef: HTMLSpanElement | undefined
 
   const hasMemo = () => !!props.value
   const tooltip = () => props.value.length > 80 ? props.value.slice(0, 80) + '…' : props.value
@@ -192,6 +196,14 @@ export function MemoCell(props: MemoCellProps) {
   function openPopup(e: MouseEvent) {
     e.stopPropagation()
     currentValue = props.value
+    if (iconRef) {
+      const rect = iconRef.getBoundingClientRect()
+      const popupHeight = 180
+      const spaceBelow = window.innerHeight - rect.bottom
+      const top = spaceBelow >= popupHeight ? rect.bottom + 4 : rect.top - popupHeight - 4
+      const left = Math.min(rect.left, window.innerWidth - 290)
+      setPos({ top: Math.max(4, top), left: Math.max(4, left) })
+    }
     setOpen(true)
   }
 
@@ -217,6 +229,7 @@ export function MemoCell(props: MemoCellProps) {
   return (
     <>
       <span
+        ref={iconRef}
         class={`memo-icon ${hasMemo() ? 'memo-icon--filled' : 'memo-icon--empty'}`}
         title={hasMemo() ? tooltip() : 'Add memo'}
         onClick={openPopup}
@@ -226,8 +239,9 @@ export function MemoCell(props: MemoCellProps) {
         }
       />
       <Show when={open()}>
-        <div class="memo-popup-backdrop" onClick={cancel}>
-          <div class="memo-popup" onClick={(e) => e.stopPropagation()}>
+        <Portal>
+          <div class="memo-popup-backdrop" onClick={cancel} />
+          <div class="memo-popup" style={{ position: 'fixed', top: `${pos().top}px`, left: `${pos().left}px` }} onClick={(e) => e.stopPropagation()}>
             <textarea class="memo-popup__input" ref={bindTextarea} placeholder="Add a memo..." rows={4} />
             <div class="memo-popup__footer">
               <span class="memo-popup__hint">Ctrl+Enter to save</span>
@@ -237,7 +251,7 @@ export function MemoCell(props: MemoCellProps) {
               </div>
             </div>
           </div>
-        </div>
+        </Portal>
       </Show>
     </>
   )

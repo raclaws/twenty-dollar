@@ -5,6 +5,7 @@ import { createQuery } from '~/lib/solid-binding'
 import { apiPatch, apiDelete } from '~/lib/api'
 import { confirmAction } from '~/components/ConfirmDialog'
 import { pushUndo } from '~/lib/undo'
+import { clampMenuPosition } from '~/lib/ui'
 import TransactionRow from './TransactionRow'
 import AddTransactionRow from './AddTransactionRow'
 import ScheduleDialog from './ScheduleDialog'
@@ -148,7 +149,8 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
 
   function handleContextMenu(e: MouseEvent, tx: Record) {
     e.preventDefault()
-    setCtxMenu({ x: e.clientX, y: e.clientY, tx })
+    const pos = clampMenuPosition(e.clientX, e.clientY)
+    setCtxMenu({ x: pos.x, y: pos.y, tx })
   }
 
   function closeCtxMenu() {

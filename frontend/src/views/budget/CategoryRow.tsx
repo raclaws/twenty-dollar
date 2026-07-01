@@ -8,6 +8,7 @@ import { formatMoneyUnsigned } from '~/lib/format'
 import type { CategoryBudget } from '~/lib/budget-engine'
 import { useStore, useBudgetFilter, type BudgetFilter } from '~/App'
 import { apiPost, apiPatch } from '~/lib/api'
+import { clampMenuPosition } from '~/lib/ui'
 import { pushUndo } from '~/lib/undo'
 import type { Record } from '~/lib/sync-engine/types'
 
@@ -166,7 +167,8 @@ const CategoryRow: Component<CategoryRowProps> = (props) => {
   function handleContextMenu(e: MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
-    setCtxMenu({ x: e.clientX, y: e.clientY })
+    const pos = clampMenuPosition(e.clientX, e.clientY)
+    setCtxMenu({ x: pos.x, y: pos.y })
   }
 
   function closeCtxMenu() { setCtxMenu(null); setCtxSub(null) }
