@@ -415,6 +415,10 @@
   min-height: 0;
 }
 
+.detail-dialog__body:has(.entity-picker) {
+  overflow-y: visible;
+}
+
 .detail-dialog__summary {
   display: flex;
   align-items: center;

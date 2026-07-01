@@ -21,6 +21,9 @@ const DetailDialog: ParentComponent<DetailDialogProps> = (props) => {
         e.stopPropagation()
         return
       }
+      // Let picker handle its own Escape first
+      const picker = dialogRef?.querySelector('.entity-picker')
+      if (picker) return
       const active = document.activeElement as HTMLElement | null
       if (active && active.tagName === 'INPUT' && active.closest('.detail-dialog')) {
         active.blur()

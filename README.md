@@ -141,6 +141,10 @@ server {
 }
 ```
 
+### HTTP / IP deployment note
+
+The app works on plain HTTP (no HTTPS). A polyfill handles `crypto.randomUUID` which browsers normally restrict to secure contexts. No functionality is lost — the only limitation is the session cookie lacks the `Secure` flag, so add HTTPS (via reverse proxy + Let's Encrypt) before exposing to the public internet.
+
 ---
 
 ## Development
