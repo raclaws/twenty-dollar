@@ -3,6 +3,7 @@ import { ChevronUp, ChevronDown, ChevronsUpDown, Layers, CircleCheck } from 'luc
 import { useStore } from '~/App'
 import { createQuery } from '~/lib/solid-binding'
 import { apiPatch, apiDelete } from '~/lib/api'
+import { serverFirst } from '~/lib/server-first'
 import { confirmAction } from '~/components/ConfirmDialog'
 import { pushUndo } from '~/lib/undo'
 import { clampMenuPosition } from '~/lib/ui'
@@ -274,11 +275,16 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
     const oldCleared = tx.cleared as number
     const newCleared = oldCleared ? 0 : 1
     const updated = { ...tx, cleared: newCleared }
-    await raw.put('transactions', updated)
-    reactive.notify('transactions')
-    apiPatch(`/api/transactions/${id}`, { cleared: !!newCleared }).catch(async () => {
-      await raw.put('transactions', { ...tx, cleared: oldCleared })
-      reactive.notify('transactions')
+    await serverFirst({
+      async optimistic() {
+        await raw.put('transactions', updated)
+        reactive.notify('transactions')
+      },
+      request: () => apiPatch(`/api/transactions/${id}`, { cleared: !!newCleared }),
+      async rollback() {
+        await raw.put('transactions', { ...tx, cleared: oldCleared })
+        reactive.notify('transactions')
+      },
     })
     closeCtxMenu()
   }
@@ -286,7 +292,7 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
   async function ctxDelete(tx: Record) {
     closeCtxMenu()
     const id = tx.id as string
-    const payeeName = payeeNameMap().get(tx.payee_id as string) ?? 'transaction'
+    const payeeName = payeeNameMap().get(tx.payee_id as string) ?? (tx.payee as string) ?? 'transaction'
     const confirmed = await confirmAction({
       message: `Delete "${payeeName}"?`,
       actionLabel: 'Delete Transaction',
@@ -294,21 +300,24 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
     if (!confirmed) return
 
     const oldRecord = { ...tx }
-    // If linked (transfer), delete mirror too
     const linkedId = tx.linked_id as string | null
     let linkedRecord: Record | undefined
     if (linkedId) {
       linkedRecord = await raw.get('transactions', linkedId)
-      if (linkedRecord) await raw.delete('transactions', linkedId)
     }
-    await raw.delete('transactions', id)
-    reactive.notify('transactions')
 
-    apiDelete(`/api/transactions/${id}`).catch(async (err) => {
-      if (err?.status === 404) return
-      await raw.put('transactions', oldRecord)
-      if (linkedRecord) await raw.put('transactions', linkedRecord)
-      reactive.notify('transactions')
+    await serverFirst({
+      async optimistic() {
+        if (linkedRecord) await raw.delete('transactions', linkedId!)
+        await raw.delete('transactions', id)
+        reactive.notify('transactions')
+      },
+      request: () => apiDelete(`/api/transactions/${id}`),
+      async rollback() {
+        await raw.put('transactions', oldRecord)
+        if (linkedRecord) await raw.put('transactions', linkedRecord)
+        reactive.notify('transactions')
+      },
     })
 
     pushUndo({

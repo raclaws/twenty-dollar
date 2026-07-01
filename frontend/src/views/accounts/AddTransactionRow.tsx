@@ -4,6 +4,7 @@ import { parseMoney, formatMoneyUnsigned } from '~/lib/format'
 import { useStore } from '~/App'
 import { createQuery } from '~/lib/solid-binding'
 import { apiPost } from '~/lib/api'
+import { serverFirst } from '~/lib/server-first'
 import { pushUndo } from '~/lib/undo'
 import { PayeePicker, CategoryPicker } from '~/components/Pickers'
 import { DatePicker } from '~/components/CellInputs'
@@ -203,9 +204,30 @@ const AddTransactionRow: Component<AddTransactionRowProps> = (props) => {
         created_at: now,
       }
 
-      await raw.put('transactions', sourceTx)
-      await raw.put('transactions', mirrorTx)
-      reactive.notify('transactions')
+      await serverFirst({
+        async optimistic() {
+          await raw.put('transactions', sourceTx)
+          await raw.put('transactions', mirrorTx)
+          reactive.notify('transactions')
+        },
+        request: () => apiPost('/api/transactions', {
+          account_id: props.accountId,
+          payee: destPayee?.name ?? null,
+          payee_id: payeeId(),
+          category_id: null,
+          date: date(),
+          amount,
+          memo: memo() || null,
+          cleared: isCleared(),
+          linked_id: mirrorId,
+          splits: [],
+        }),
+        async rollback() {
+          await raw.delete('transactions', id)
+          await raw.delete('transactions', mirrorId)
+          reactive.notify('transactions')
+        },
+      })
 
       const destName = destPayee?.name as string ?? 'Unknown'
       pushUndo({
@@ -239,8 +261,6 @@ const AddTransactionRow: Component<AddTransactionRowProps> = (props) => {
       created_at: now,
     }
 
-    await raw.put('transactions', txRecord)
-
     const splitRecords = isSplit() ? splits().map(s => ({
       id: crypto.randomUUID(),
       transaction_id: id,
@@ -249,24 +269,32 @@ const AddTransactionRow: Component<AddTransactionRowProps> = (props) => {
       memo: s.memo || null,
     })) : []
 
-    for (const sr of splitRecords) {
-      await raw.put('split_entries', sr)
-    }
-
-    reactive.notify('transactions')
-    if (splitRecords.length) reactive.notify('split_entries')
-
-    apiPost('/api/transactions', {
-      account_id: props.accountId,
-      payee: payeeLabel() || null,
-      payee_id: payeeId(),
-      category_id: txRecord.category_id,
-      date: txRecord.date,
-      amount: txRecord.amount,
-      memo: txRecord.memo,
-      cleared: isCleared(),
-      splits: splitRecords.map(s => ({ category_id: s.category_id, amount: s.amount, memo: s.memo })),
-    }).catch(() => {})
+    await serverFirst({
+      async optimistic() {
+        await raw.put('transactions', txRecord)
+        for (const sr of splitRecords) await raw.put('split_entries', sr)
+        reactive.notify('transactions')
+        if (splitRecords.length) reactive.notify('split_entries')
+      },
+      request: () => apiPost('/api/transactions', {
+        account_id: props.accountId,
+        payee: payeeLabel() || null,
+        payee_id: payeeId(),
+        category_id: txRecord.category_id,
+        date: txRecord.date,
+        amount: txRecord.amount,
+        memo: txRecord.memo,
+        cleared: isCleared(),
+        linked_id: null,
+        splits: splitRecords.map(s => ({ category_id: s.category_id, amount: s.amount, memo: s.memo })),
+      }),
+      async rollback() {
+        await raw.delete('transactions', id)
+        for (const sr of splitRecords) await raw.delete('split_entries', sr.id)
+        reactive.notify('transactions')
+        reactive.notify('split_entries')
+      },
+    })
 
     pushUndo({
       description: `Added transaction: ${payeeLabel() || 'Unknown'} ${(amount / 100).toFixed(2)}`,

@@ -8,6 +8,7 @@ import { getInitial, getInitialColor } from '~/lib/icons'
 import { useStore } from '~/App'
 import { createQuery } from '~/lib/solid-binding'
 import { apiPatch } from '~/lib/api'
+import { serverFirst } from '~/lib/server-first'
 import { pushUndo } from '~/lib/undo'
 import type { Record } from '~/lib/sync-engine/types'
 
@@ -105,22 +106,29 @@ const TransactionRow: Component<TransactionRowProps> = (props) => {
     const oldRecord = { ...props.tx }
     const updated = { ...props.tx, [field]: newValue }
 
-    await raw.put('transactions', updated)
-    reactive.notify('transactions')
-
-    // Propagate to mirror if linked
     const linkedId = props.tx.linked_id as string | null
     let oldLinked: Record | undefined
     if (linkedId && (field === 'date' || field === 'amount' || field === 'memo')) {
       oldLinked = await raw.get('transactions', linkedId)
-      if (oldLinked) {
-        const mirrorValue = field === 'amount' ? -(newValue as number) : newValue
-        await raw.put('transactions', { ...oldLinked, [field]: mirrorValue })
-        reactive.notify('transactions')
-      }
     }
 
-    apiPatch(`/api/transactions/${id}`, { [field]: newValue }).catch(() => {})
+    await serverFirst({
+      async optimistic() {
+        await raw.put('transactions', updated)
+        reactive.notify('transactions')
+        if (oldLinked) {
+          const mirrorValue = field === 'amount' ? -(newValue as number) : newValue
+          await raw.put('transactions', { ...oldLinked, [field]: mirrorValue })
+          reactive.notify('transactions')
+        }
+      },
+      request: () => apiPatch(`/api/transactions/${id}`, { [field]: newValue }),
+      async rollback() {
+        await raw.put('transactions', oldRecord)
+        if (oldLinked) await raw.put('transactions', oldLinked)
+        reactive.notify('transactions')
+      },
+    })
 
     pushUndo({
       description: `Edited ${field}: ${payeeName() || 'transaction'}`,
@@ -230,9 +238,17 @@ const TransactionRow: Component<TransactionRowProps> = (props) => {
     const oldCleared = props.tx.cleared as number
     const newCleared = oldCleared ? 0 : 1
     const updated = { ...props.tx, cleared: newCleared }
-    await raw.put('transactions', updated)
-    reactive.notify('transactions')
-    apiPatch(`/api/transactions/${id}`, { cleared: !!newCleared }).catch(() => {})
+    await serverFirst({
+      async optimistic() {
+        await raw.put('transactions', updated)
+        reactive.notify('transactions')
+      },
+      request: () => apiPatch(`/api/transactions/${id}`, { cleared: !!newCleared }),
+      async rollback() {
+        await raw.put('transactions', { ...props.tx, cleared: oldCleared })
+        reactive.notify('transactions')
+      },
+    })
   }
 
   return (
