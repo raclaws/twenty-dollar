@@ -186,20 +186,9 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
       }
     }
 
-    function globalClick(e: MouseEvent) {
-      const target = e.target as HTMLElement
-      if (!target.closest('.entity-picker')) {
-        props.onCancel()
-      }
-    }
-
     document.addEventListener('keydown', globalEscape)
-    setTimeout(() => {
-      document.addEventListener('mousedown', globalClick, true)
-    }, 10)
     onCleanup(() => {
       document.removeEventListener('keydown', globalEscape)
-      document.removeEventListener('mousedown', globalClick, true)
     })
   })
 
@@ -219,6 +208,8 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
   }
 
   return (
+    <>
+    <div class="entity-picker-backdrop" onClick={() => props.onCancel()} onMouseDown={(e) => e.stopPropagation()} />
     <div ref={initRef} class="entity-picker" style={{ position: 'fixed', top: `${pos()?.top ?? -9999}px`, left: `${pos()?.left ?? -9999}px`, visibility: pos() ? 'visible' : 'hidden' }} onKeyDown={handleKeyDown} onMouseDown={(e) => e.stopPropagation()}>
       <input
         class="entity-picker__search"
@@ -279,6 +270,7 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
         </div>
       </Show>
     </div>
+    </>
   )
 }
 
