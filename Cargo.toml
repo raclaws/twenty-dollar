@@ -26,6 +26,8 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 thiserror = "2"
 csv = "1"
+argon2 = "0.5"
+rand = "0.8"
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }

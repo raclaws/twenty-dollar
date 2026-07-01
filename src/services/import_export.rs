@@ -25,9 +25,9 @@ pub struct AssignmentExport {
     pub amount: i64,
 }
 
-pub fn export_all(conn: &Connection) -> AppResult<ExportData> {
-    let accounts = db::accounts::list_accounts(conn)?;
-    let category_groups = db::categories::list_groups_with_categories(conn)?;
+pub fn export_all(conn: &Connection, user_id: &str) -> AppResult<ExportData> {
+    let accounts = db::accounts::list_accounts(conn, user_id)?;
+    let category_groups = db::categories::list_groups_with_categories(conn, user_id)?;
     let transactions = db::transactions::list_transactions(conn, None, None, None, None)?;
     let transfers = db::transfers::list_transfers(conn)?;
 
@@ -64,14 +64,14 @@ pub struct CsvRow {
     pub account: Option<String>,
 }
 
-pub fn import_csv(conn: &Connection, csv_data: &str, default_account_id: &str) -> AppResult<usize> {
+pub fn import_csv(conn: &Connection, user_id: &str, csv_data: &str, default_account_id: &str) -> AppResult<usize> {
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(true)
         .flexible(true)
         .from_reader(csv_data.as_bytes());
 
-    let accounts = db::accounts::list_accounts(conn)?;
-    let groups = db::categories::list_groups_with_categories(conn)?;
+    let accounts = db::accounts::list_accounts(conn, user_id)?;
+    let groups = db::categories::list_groups_with_categories(conn, user_id)?;
     let all_categories: Vec<_> = groups.iter().flat_map(|g| g.categories.iter()).collect();
 
     let mut imported_ids: Vec<String> = Vec::new();

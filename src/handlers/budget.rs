@@ -1,4 +1,4 @@
-use axum::{extract::{State, Query}, Json};
+use axum::{extract::{State, Query}, Json, Extension};
 use serde::Deserialize;
 use crate::app::AppState;
 use crate::error::{AppError, AppResult};
@@ -13,18 +13,20 @@ pub struct BudgetQuery {
 
 pub async fn get_budget(
     State(state): State<AppState>,
+    Extension(user_id): Extension<String>,
     Query(params): Query<BudgetQuery>,
 ) -> AppResult<Json<BudgetMonth>> {
     let pool = state.db.clone();
     let result = tokio::task::spawn_blocking(move || {
         let conn = pool.get()?;
-        services::budget::compute_budget(&conn, &params.month)
+        services::budget::compute_budget(&conn, &user_id, &params.month)
     }).await.map_err(|e| AppError::Internal(e.to_string()))??;
     Ok(Json(result))
 }
 
 pub async fn assign(
     State(state): State<AppState>,
+    Extension(_user_id): Extension<String>,
     Json(input): Json<AssignRequest>,
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = state.db.clone();
@@ -66,6 +68,7 @@ pub async fn assign(
 
 pub async fn move_money(
     State(state): State<AppState>,
+    Extension(_user_id): Extension<String>,
     Json(input): Json<MoveRequest>,
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = state.db.clone();
@@ -135,6 +138,7 @@ pub struct MonthLockRequest {
 
 pub async fn set_month_lock(
     State(state): State<AppState>,
+    Extension(_user_id): Extension<String>,
     Json(input): Json<MonthLockRequest>,
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = state.db.clone();

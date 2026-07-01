@@ -1,11 +1,23 @@
-/* ─── Sync Indicator (top-right square) ─── */
-.sync-box {
+/* ─── Sync Indicator (top-right, label + box) ─── */
+.sync-indicator {
   position: fixed;
-  top: 25px;
+  top: 14px;
   right: var(--sp-4);
   z-index: 50;
-  width: 10px;
-  height: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sync-indicator__label {
+  font-size: 11px;
+  color: var(--c-overlay0);
+  white-space: nowrap;
+}
+
+.sync-box {
+  width: 8px;
+  height: 8px;
   border-radius: 2px;
   opacity: 0.85;
   transition: background var(--dur-normal) var(--ease), box-shadow var(--dur-normal) var(--ease);

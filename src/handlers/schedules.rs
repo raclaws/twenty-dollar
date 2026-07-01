@@ -1,86 +1,71 @@
-use axum::{extract::{State, Path, Query}, Json, Extension};
-use serde::Deserialize;
+use axum::{extract::{State, Path}, Json, Extension};
 use crate::app::AppState;
 use crate::error::AppResult;
-use crate::models::transaction::*;
+use crate::models::schedule::*;
+use crate::models::transaction::Transaction;
 use crate::services;
-
-#[derive(Deserialize)]
-pub struct TransactionQuery {
-    pub account: Option<String>,
-    pub from: Option<String>,
-    pub to: Option<String>,
-    pub category: Option<String>,
-}
 
 pub async fn list(
     State(state): State<AppState>,
-    Extension(_user_id): Extension<String>,
-    Query(params): Query<TransactionQuery>,
-) -> AppResult<Json<Vec<Transaction>>> {
+    Extension(user_id): Extension<String>,
+) -> AppResult<Json<Vec<Schedule>>> {
     let pool = state.db.clone();
     let result = tokio::task::spawn_blocking(move || {
         let conn = pool.get()?;
-        services::transactions::list_transactions(
-            &conn,
-            params.account.as_deref(),
-            params.from.as_deref(),
-            params.to.as_deref(),
-            params.category.as_deref(),
-        )
+        services::schedules::list_schedules(&conn, &user_id)
     }).await.map_err(|e| crate::error::AppError::Internal(e.to_string()))??;
     Ok(Json(result))
 }
 
 pub async fn create(
     State(state): State<AppState>,
-    Extension(_user_id): Extension<String>,
-    Json(input): Json<CreateTransaction>,
-) -> AppResult<Json<Transaction>> {
+    Extension(user_id): Extension<String>,
+    Json(input): Json<CreateSchedule>,
+) -> AppResult<Json<Schedule>> {
     let pool = state.db.clone();
     let result = tokio::task::spawn_blocking(move || {
         let conn = pool.get()?;
-        services::transactions::create_transaction(&conn, input)
+        services::schedules::create_schedule(&conn, &user_id, input)
     }).await.map_err(|e| crate::error::AppError::Internal(e.to_string()))??;
     Ok(Json(result))
 }
 
 pub async fn update(
     State(state): State<AppState>,
-    Extension(_user_id): Extension<String>,
+    Extension(user_id): Extension<String>,
     Path(id): Path<String>,
-    Json(input): Json<UpdateTransaction>,
-) -> AppResult<Json<Transaction>> {
+    Json(input): Json<UpdateSchedule>,
+) -> AppResult<Json<Schedule>> {
     let pool = state.db.clone();
     let result = tokio::task::spawn_blocking(move || {
         let conn = pool.get()?;
-        services::transactions::update_transaction(&conn, &id, input)
+        services::schedules::update_schedule(&conn, &user_id, &id, input)
     }).await.map_err(|e| crate::error::AppError::Internal(e.to_string()))??;
     Ok(Json(result))
 }
 
 pub async fn delete(
     State(state): State<AppState>,
-    Extension(_user_id): Extension<String>,
+    Extension(user_id): Extension<String>,
     Path(id): Path<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = state.db.clone();
     tokio::task::spawn_blocking(move || {
         let conn = pool.get()?;
-        services::transactions::delete_transaction(&conn, &id)
+        services::schedules::delete_schedule(&conn, &user_id, &id)
     }).await.map_err(|e| crate::error::AppError::Internal(e.to_string()))??;
     Ok(Json(serde_json::json!({"ok": true})))
 }
 
-pub async fn bulk(
+pub async fn generate(
     State(state): State<AppState>,
-    Extension(_user_id): Extension<String>,
-    Json(input): Json<BulkOperation>,
-) -> AppResult<Json<serde_json::Value>> {
+    Extension(user_id): Extension<String>,
+) -> AppResult<Json<Vec<Transaction>>> {
     let pool = state.db.clone();
-    let count = tokio::task::spawn_blocking(move || {
+    let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+    let result = tokio::task::spawn_blocking(move || {
         let conn = pool.get()?;
-        services::transactions::bulk_operation(&conn, input)
+        services::schedules::generate_due(&conn, &user_id, &today)
     }).await.map_err(|e| crate::error::AppError::Internal(e.to_string()))??;
-    Ok(Json(serde_json::json!({"affected": count})))
+    Ok(Json(result))
 }

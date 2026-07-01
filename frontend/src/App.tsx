@@ -1,4 +1,4 @@
-import { createSignal, createContext, useContext, createMemo, onMount, Show, For, type ParentComponent, type Accessor } from 'solid-js'
+import { createSignal, createContext, useContext, createMemo, createEffect, onMount, Show, For, type ParentComponent, type Accessor } from 'solid-js'
 import { A, useLocation, useNavigate } from '@solidjs/router'
 import { LayoutGrid, ArrowLeftRight, CreditCard, Settings, Wallet, AlertTriangle, TrendingDown, AlertCircle, CircleDot } from 'lucide-solid'
 import type { AppStore } from './lib/store'
@@ -8,6 +8,7 @@ import { currentMonth, formatMoneyUnsigned } from './lib/format'
 import { createBudgetStore } from './lib/budget-signals'
 import { useSyncStatus } from './components/SyncIndicator'
 import Toast from './components/Toast'
+import { confirmAction } from './components/ConfirmDialog'
 import ConfirmDialog from './components/ConfirmDialog'
 import SyncIndicator, { useOnlineDetector } from './components/SyncIndicator'
 import './styles/layout.css'
@@ -36,41 +37,106 @@ export function useBudgetFilter() {
   return ctx
 }
 
+const AUTH_PATHS = ['/login', '/setup']
+
 const App: ParentComponent = (props) => {
   const [store, setStore] = createSignal<AppStore | null>(null)
   const [month, setMonth] = createSignal(currentMonth())
   const [budgetFilter, setBudgetFilter] = createSignal<BudgetFilter>(null)
   const [loading, setLoading] = createSignal(true)
+  const [authed, setAuthed] = createSignal(false)
+  const location = useLocation()
+  const navigate = useNavigate()
 
-  onMount(async () => {
-    const s = await initStore()
-    setStore(s)
+  const isAuthPage = () => AUTH_PATHS.includes(location.pathname)
+
+  let initialized = false
+
+  async function initApp() {
+    if (initialized) return
+    initialized = true
+
+    const cachedAuth = !!localStorage.getItem('user_email')
+    if (cachedAuth) {
+      setAuthed(true)
+      const s = await initStore()
+      setStore(s)
+      setLoading(false)
+      fetch('/api/schedules/generate', { method: 'POST' }).catch(() => {})
+      fetch('/api/auth/me').then(r => {
+        if (r.status === 401) {
+          localStorage.removeItem('user_name')
+          localStorage.removeItem('user_email')
+          setAuthed(false)
+          window.location.href = '/login'
+        }
+      }).catch(() => {})
+      return
+    }
+
+    try {
+      const res = await fetch('/api/auth/me')
+      if (res.status === 401) {
+        navigate('/login', { replace: true })
+        setLoading(false)
+        return
+      }
+      if (res.ok) {
+        setAuthed(true)
+        const s = await initStore()
+        setStore(s)
+        fetch('/api/schedules/generate', { method: 'POST' }).catch(() => {})
+      }
+    } catch {
+      setAuthed(true)
+      const s = await initStore()
+      setStore(s)
+    }
     setLoading(false)
+  }
+
+  createEffect(() => {
+    if (!isAuthPage() && !authed()) {
+      initApp()
+    }
+  })
+
+  onMount(() => {
+    if (isAuthPage()) {
+      setLoading(false)
+    }
   })
 
   return (
     <>
     <SyncIndicator />
-    <Show when={!loading()} fallback={
-      <div class="app-loading">
-        <Wallet size={48} />
-        <span class="app-loading__text">20 Dollar</span>
-      </div>
-    }>
-      <StoreContext.Provider value={store()!}>
-        <MonthContext.Provider value={{ month, setMonth }}>
-          <BudgetFilterContext.Provider value={{ filter: budgetFilter, setFilter: setBudgetFilter }}>
-            <div class="app-shell">
-              <Sidebar />
-              <main class="main">
-                {props.children}
-              </main>
-              <Toast />
-              <ConfirmDialog />
-            </div>
-          </BudgetFilterContext.Provider>
-        </MonthContext.Provider>
-      </StoreContext.Provider>
+    <Show when={isAuthPage()}>
+      {props.children}
+    </Show>
+    <Show when={!isAuthPage()}>
+      <Show when={!loading()} fallback={
+        <div class="app-loading">
+          <Wallet size={48} />
+          <span class="app-loading__text">20 Dollar</span>
+        </div>
+      }>
+        <Show when={authed() && store()}>
+          <StoreContext.Provider value={store()!}>
+            <MonthContext.Provider value={{ month, setMonth }}>
+              <BudgetFilterContext.Provider value={{ filter: budgetFilter, setFilter: setBudgetFilter }}>
+                <div class="app-shell">
+                  <Sidebar />
+                  <main class="main">
+                    {props.children}
+                  </main>
+                  <Toast />
+                  <ConfirmDialog />
+                </div>
+              </BudgetFilterContext.Provider>
+            </MonthContext.Provider>
+          </StoreContext.Provider>
+        </Show>
+      </Show>
     </Show>
     </>
   )
@@ -219,31 +285,27 @@ function Sidebar() {
           }}
         </For>
       </div>
-      <div class="sidebar__sync-status">
-        {(() => {
-          const { syncStatus, lastSynced } = useSyncStatus()
-          const label = () => {
-            const s = syncStatus()
-            const connection = s === 'connected' || s === 'syncing' || s === 'error' ? 'Online' : s === 'reconnecting' ? 'Connecting' : 'Offline'
-            const save = (() => {
-              switch (s) {
-                case 'connected': return lastSynced() ? 'Saved' : 'Ready'
-                case 'syncing': return 'Saving...'
-                case 'error': return 'Save failed'
-                case 'reconnecting': return 'Local only'
-                case 'offline': return 'Local only'
-              }
-            })()
-            return `${connection} | ${save}`
-          }
-          const statusClass = () => `sidebar__sync-dot sidebar__sync-dot--${syncStatus()}`
-          return (
-            <>
-              <span class={statusClass()} />
-              <span class="sidebar__sync-label">{label()}</span>
-            </>
-          )
-        })()}
+      <div class="sidebar__user">
+        <div class="sidebar__user-row">
+          <span class="sidebar__user-avatar">
+            {(() => {
+              const name = localStorage.getItem('user_name') || '?'
+              return name.charAt(0).toUpperCase()
+            })()}
+          </span>
+          <span class="sidebar__user-email">{localStorage.getItem('user_email') || ''}</span>
+        </div>
+        <button class="sidebar__logout" onClick={async () => {
+          const confirmed = await confirmAction({
+            message: 'Log out of 20 Dollar?',
+            actionLabel: 'Log out',
+          })
+          if (!confirmed) return
+          await fetch('/api/auth/logout', { method: 'POST' })
+          localStorage.removeItem('user_name')
+          localStorage.removeItem('user_email')
+          navigate('/login', { replace: true })
+        }}>Log out</button>
       </div>
     </aside>
   )

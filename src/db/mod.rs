@@ -1,6 +1,8 @@
 pub mod accounts;
 pub mod assignments;
+pub mod auth;
 pub mod categories;
+pub mod schedules;
 pub mod schema;
 pub mod transactions;
 pub mod transfers;

@@ -2,7 +2,7 @@ import type { StoreConfig, SyncStore, Record, QueryOptions } from './types'
 
 export function createSyncStore(config: StoreConfig): Promise<SyncStore> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(config.name, 2)
+    const request = indexedDB.open(config.name, 3)
 
     request.onupgradeneeded = () => {
       const db = request.result
@@ -39,22 +39,26 @@ async function buildStore(db: IDBDatabase, config: StoreConfig): Promise<SyncSto
 
   for (const tableName of Object.keys(config.tables)) {
     cache[tableName] = new Map()
-    // Hydrate memory from IDB on init
-    const records = await idbGetAll(db, tableName)
-    for (const r of records) {
-      cache[tableName].set(r.id, r)
+    if (db.objectStoreNames.contains(tableName)) {
+      const records = await idbGetAll(db, tableName)
+      for (const r of records) {
+        cache[tableName].set(r.id, r)
+      }
     }
   }
 
   function tx(table: string, mode: IDBTransactionMode) {
+    if (!db.objectStoreNames.contains(table)) return null
     return db.transaction(table, mode).objectStore(table)
   }
 
   const store: SyncStore = {
     async put(table, record) {
       cache[table].set(record.id, record)
+      const s = tx(table, 'readwrite')
+      if (!s) return
       return new Promise((resolve, reject) => {
-        const req = tx(table, 'readwrite').put(record)
+        const req = s.put(record)
         req.onsuccess = () => resolve()
         req.onerror = () => reject(req.error)
       })
@@ -62,6 +66,7 @@ async function buildStore(db: IDBDatabase, config: StoreConfig): Promise<SyncSto
 
     async putMany(table, records) {
       for (const r of records) cache[table].set(r.id, r)
+      if (!db.objectStoreNames.contains(table)) return
       return new Promise((resolve, reject) => {
         const transaction = db.transaction(table, 'readwrite')
         const s = transaction.objectStore(table)
@@ -93,8 +98,10 @@ async function buildStore(db: IDBDatabase, config: StoreConfig): Promise<SyncSto
 
     async delete(table, id) {
       cache[table].delete(id)
+      const s = tx(table, 'readwrite')
+      if (!s) return
       return new Promise((resolve, reject) => {
-        const req = tx(table, 'readwrite').delete(id)
+        const req = s.delete(id)
         req.onsuccess = () => resolve()
         req.onerror = () => reject(req.error)
       })
@@ -102,8 +109,10 @@ async function buildStore(db: IDBDatabase, config: StoreConfig): Promise<SyncSto
 
     async clear(table) {
       cache[table].clear()
+      const s = tx(table, 'readwrite')
+      if (!s) return
       return new Promise((resolve, reject) => {
-        const req = tx(table, 'readwrite').clear()
+        const req = s.clear()
         req.onsuccess = () => resolve()
         req.onerror = () => reject(req.error)
       })

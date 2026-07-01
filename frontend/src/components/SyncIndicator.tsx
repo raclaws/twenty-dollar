@@ -114,18 +114,21 @@ const SyncIndicator: Component = () => {
     }
   })
 
-  const tooltip = createMemo(() => {
+  const label = createMemo(() => {
     switch (status()) {
-      case 'connected': return 'Connected'
-      case 'syncing': return 'Syncing...'
+      case 'connected': return lastSynced() ? 'Saved' : 'Connected'
+      case 'syncing': return 'Saving...'
       case 'offline': return 'Offline'
-      case 'error': return 'Sync failed'
+      case 'error': return 'Save failed'
       case 'reconnecting': return 'Connecting...'
     }
   })
 
   return (
-    <div class={`sync-box ${boxClass()}`} title={tooltip()} />
+    <div class="sync-indicator">
+      <span class="sync-indicator__label">{label()}</span>
+      <span class={`sync-box ${boxClass()}`} />
+    </div>
   )
 }
 

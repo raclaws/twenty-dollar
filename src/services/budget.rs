@@ -5,13 +5,13 @@ use crate::db;
 use crate::error::AppResult;
 use crate::models::budget::{BudgetMonth, BudgetGroup, CategoryBudget};
 
-pub fn compute_budget(conn: &Connection, month: &str) -> AppResult<BudgetMonth> {
+pub fn compute_budget(conn: &Connection, user_id: &str, month: &str) -> AppResult<BudgetMonth> {
     let month_start = format!("{}-01", month);
     let month_end = last_day_of_month(month);
 
     let ready_to_assign = compute_rta(conn, month, &month_end)?;
 
-    let groups = db::categories::list_groups_with_categories(conn)?;
+    let groups = db::categories::list_groups_with_categories(conn, user_id)?;
 
     let activity_this_month = db::transactions::activity_by_category_for_month(conn, &month_start, &month_end)?;
     let mut activity_map: HashMap<String, i64> = HashMap::new();

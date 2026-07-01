@@ -11,6 +11,7 @@ const TABLE_TO_ENDPOINT: Record<string, string> = {
   transactions: '/api/transactions',
   split_entries: '',
   assignments: '',
+  schedules: '/api/schedules',
 }
 
 export function createRestAdapter(_baseUrl: string): SyncAdapter {
@@ -56,6 +57,14 @@ function flashErrorThenRecover() {
   setTimeout(() => updateSyncStatus('connected'), 2000)
 }
 
+function handleUnauthorized(status: number) {
+  if (status === 401) {
+    localStorage.removeItem('user_name')
+    localStorage.removeItem('user_email')
+    window.location.href = '/login'
+  }
+}
+
 export async function apiPost<T = unknown>(path: string, body: unknown): Promise<T> {
   updateSyncStatus('syncing')
   try {
@@ -65,6 +74,7 @@ export async function apiPost<T = unknown>(path: string, body: unknown): Promise
       body: JSON.stringify(body),
     })
     if (!res.ok) {
+      handleUnauthorized(res.status)
       flashErrorThenRecover()
       const err = await res.json().catch(() => ({ error: res.statusText }))
       throw new ApiError(res.status, err.error ?? 'Request failed')
@@ -82,6 +92,7 @@ export async function apiGet<T = unknown>(path: string): Promise<T> {
   try {
     const res = await fetch(path)
     if (!res.ok) {
+      handleUnauthorized(res.status)
       flashErrorThenRecover()
       const err = await res.json().catch(() => ({ error: res.statusText }))
       throw new ApiError(res.status, err.error ?? 'Request failed')
@@ -103,6 +114,7 @@ export async function apiPut<T = unknown>(path: string, body: unknown): Promise<
       body: JSON.stringify(body),
     })
     if (!res.ok) {
+      handleUnauthorized(res.status)
       flashErrorThenRecover()
       const err = await res.json().catch(() => ({ error: res.statusText }))
       throw new ApiError(res.status, err.error ?? 'Request failed')
@@ -124,6 +136,7 @@ export async function apiPatch<T = unknown>(path: string, body: unknown): Promis
       body: JSON.stringify(body),
     })
     if (!res.ok) {
+      handleUnauthorized(res.status)
       flashErrorThenRecover()
       const err = await res.json().catch(() => ({ error: res.statusText }))
       throw new ApiError(res.status, err.error ?? 'Request failed')
@@ -141,6 +154,7 @@ export async function apiDelete(path: string): Promise<void> {
   try {
     const res = await fetch(path, { method: 'DELETE' })
     if (!res.ok) {
+      handleUnauthorized(res.status)
       flashErrorThenRecover()
       const err = await res.json().catch(() => ({ error: res.statusText }))
       throw new ApiError(res.status, err.error ?? 'Request failed')

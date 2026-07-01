@@ -7,6 +7,7 @@ import { confirmAction } from '~/components/ConfirmDialog'
 import { pushUndo } from '~/lib/undo'
 import TransactionRow from './TransactionRow'
 import AddTransactionRow from './AddTransactionRow'
+import ScheduleDialog from './ScheduleDialog'
 import type { Record } from '~/lib/sync-engine/types'
 
 interface TransactionTableProps {
@@ -221,6 +222,13 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
     setEditingRowId(tx.id as string)
   }
 
+  const [scheduleTx, setScheduleTx] = createSignal<Record | null>(null)
+
+  function ctxMakeRecurring(tx: Record) {
+    closeCtxMenu()
+    setScheduleTx(tx)
+  }
+
   return (
     <div class="txn-table">
       <Show when={props.accountId && !props.compact}>
@@ -326,9 +334,26 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
           <div class="ctx-menu" style={{ position: 'fixed', left: `${menu().x}px`, top: `${menu().y}px` }}>
             <div class="ctx-menu__item" onClick={() => ctxEdit(menu().tx)}>Edit</div>
             <div class="ctx-menu__item" onClick={() => ctxToggleCleared(menu().tx)}>Toggle Cleared</div>
+            <div class="ctx-menu__item" onClick={() => ctxMakeRecurring(menu().tx)}>Make Recurring</div>
             <div class="ctx-menu__sep" />
             <div class="ctx-menu__item ctx-menu__item--danger" onClick={() => ctxDelete(menu().tx)}>Delete</div>
           </div>
+        )}
+      </Show>
+
+      <Show when={scheduleTx()}>
+        {(tx) => (
+          <ScheduleDialog
+            transaction={{
+              account_id: tx().account_id as string,
+              category_id: tx().category_id as string | null,
+              payee: tx().payee_id ? (payeeNameMap().get(tx().payee_id as string) ?? null) : null,
+              amount: tx().amount as number,
+              memo: tx().memo as string | null,
+            }}
+            onClose={() => setScheduleTx(null)}
+            onCreated={() => reactive.notify('schedules')}
+          />
         )}
       </Show>
     </div>

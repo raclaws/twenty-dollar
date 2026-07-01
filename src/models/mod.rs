@@ -2,6 +2,8 @@ pub mod account;
 pub mod assignment;
 pub mod budget;
 pub mod category;
+pub mod schedule;
 pub mod transaction;
 pub mod transfer;
 pub mod undo;
+pub mod user;

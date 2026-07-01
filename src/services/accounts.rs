@@ -5,11 +5,11 @@ use crate::models::account::{Account, CreateAccount, UpdateAccount};
 use crate::models::undo::Mutation;
 use crate::services::undo::record_undo;
 
-pub fn list_accounts(conn: &Connection) -> AppResult<Vec<Account>> {
-    Ok(db::accounts::list_accounts(conn)?)
+pub fn list_accounts(conn: &Connection, user_id: &str) -> AppResult<Vec<Account>> {
+    Ok(db::accounts::list_accounts(conn, user_id)?)
 }
 
-pub fn create_account(conn: &Connection, input: CreateAccount) -> AppResult<Account> {
+pub fn create_account(conn: &Connection, user_id: &str, input: CreateAccount) -> AppResult<Account> {
     let id = uuid::Uuid::new_v4().to_string();
     let now = chrono::Utc::now().to_rfc3339();
     let acc = Account {
@@ -19,7 +19,7 @@ pub fn create_account(conn: &Connection, input: CreateAccount) -> AppResult<Acco
         sort_order: input.sort_order.unwrap_or(0),
         created_at: now,
     };
-    db::accounts::insert_account(conn, &acc)?;
+    db::accounts::insert_account(conn, &acc, user_id)?;
 
     record_undo(conn, &format!("Create account '{}'", acc.name), vec![
         Mutation::Insert { table: "accounts".into(), data: serde_json::to_value(&acc).unwrap() }
@@ -30,19 +30,19 @@ pub fn create_account(conn: &Connection, input: CreateAccount) -> AppResult<Acco
     Ok(acc)
 }
 
-pub fn update_account(conn: &Connection, id: &str, input: UpdateAccount) -> AppResult<Account> {
-    let existing = db::accounts::get_account(conn, id)?
+pub fn update_account(conn: &Connection, user_id: &str, id: &str, input: UpdateAccount) -> AppResult<Account> {
+    let existing = db::accounts::get_account(conn, id, user_id)?
         .ok_or_else(|| AppError::NotFound(format!("Account {}", id)))?;
 
     let prev = serde_json::to_value(&existing).unwrap();
     db::accounts::update_account(
-        conn, id,
+        conn, id, user_id,
         input.name.as_deref(),
         input.account_type.as_ref(),
         input.sort_order,
     )?;
 
-    let updated = db::accounts::get_account(conn, id)?.unwrap();
+    let updated = db::accounts::get_account(conn, id, user_id)?.unwrap();
     let fields = serde_json::to_value(&updated).unwrap();
 
     record_undo(conn, &format!("Update account '{}'", updated.name), vec![
@@ -54,11 +54,11 @@ pub fn update_account(conn: &Connection, id: &str, input: UpdateAccount) -> AppR
     Ok(updated)
 }
 
-pub fn delete_account(conn: &Connection, id: &str) -> AppResult<()> {
-    let existing = db::accounts::get_account(conn, id)?
+pub fn delete_account(conn: &Connection, user_id: &str, id: &str) -> AppResult<()> {
+    let existing = db::accounts::get_account(conn, id, user_id)?
         .ok_or_else(|| AppError::NotFound(format!("Account {}", id)))?;
 
-    db::accounts::delete_account(conn, id)?;
+    db::accounts::delete_account(conn, id, user_id)?;
 
     record_undo(conn, &format!("Delete account '{}'", existing.name), vec![
         Mutation::Delete { table: "accounts".into(), id: id.to_string() }

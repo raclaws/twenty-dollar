@@ -1,13 +1,44 @@
-use axum::{routing::{get, post, patch, delete}, Router, Json};
+use axum::{routing::{get, post, patch, delete}, Router, Json, middleware};
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
 use crate::db::DbPool;
 use crate::handlers;
+use crate::middleware::auth::require_auth;
 
 #[derive(Clone)]
 pub struct AppState {
     pub db: DbPool,
+    pub rate_limiter: Arc<Mutex<RateLimiter>>,
+}
+
+pub struct RateLimiter {
+    attempts: HashMap<String, Vec<Instant>>,
+}
+
+impl RateLimiter {
+    pub fn new() -> Self {
+        Self { attempts: HashMap::new() }
+    }
+
+    pub fn check(&mut self, key: &str, max: usize, window_secs: u64) -> bool {
+        let now = Instant::now();
+        let window = std::time::Duration::from_secs(window_secs);
+        let entries = self.attempts.entry(key.to_string()).or_default();
+        entries.retain(|t| now.duration_since(*t) < window);
+        if entries.len() >= max {
+            return false;
+        }
+        entries.push(now);
+        true
+    }
+
+    pub fn reset(&mut self, key: &str) {
+        self.attempts.remove(key);
+    }
 }
 
 async fn health() -> Json<serde_json::Value> {
@@ -15,11 +46,21 @@ async fn health() -> Json<serde_json::Value> {
 }
 
 pub fn build_router(pool: DbPool) -> Router {
-    let state = AppState { db: pool };
+    let state = AppState {
+        db: pool,
+        rate_limiter: Arc::new(Mutex::new(RateLimiter::new())),
+    };
 
-    Router::new()
-        // Health
+    let public = Router::new()
         .route("/api/health", get(health))
+        .route("/api/auth/status", get(handlers::auth::status))
+        .route("/api/auth/setup", post(handlers::auth::setup))
+        .route("/api/auth/signup", post(handlers::auth::signup))
+        .route("/api/auth/login", post(handlers::auth::login))
+        .route("/api/auth/logout", post(handlers::auth::logout));
+
+    let protected = Router::new()
+        .route("/api/auth/me", get(handlers::auth::me))
         // Budget
         .route("/api/budget", get(handlers::budget::get_budget))
         .route("/api/budget/assign", post(handlers::budget::assign))
@@ -57,7 +98,16 @@ pub fn build_router(pool: DbPool) -> Router {
         // Import/Export
         .route("/api/import", post(handlers::import_export::import_csv))
         .route("/api/export", get(handlers::import_export::export_json))
-        // Middleware
+        // Schedules
+        .route("/api/schedules", get(handlers::schedules::list))
+        .route("/api/schedules", post(handlers::schedules::create))
+        .route("/api/schedules/{id}", patch(handlers::schedules::update))
+        .route("/api/schedules/{id}", delete(handlers::schedules::delete))
+        .route("/api/schedules/generate", post(handlers::schedules::generate))
+        .route_layer(middleware::from_fn_with_state(state.clone(), require_auth));
+
+    public
+        .merge(protected)
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http())
         .with_state(state)

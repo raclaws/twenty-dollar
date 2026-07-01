@@ -39,6 +39,10 @@ const STORE_CONFIG = {
       fields: { category_id: 'string', month: 'string', amount: 'number' } as const,
       indexes: ['category_id', 'month'],
     },
+    schedules: {
+      fields: { account_id: 'string', category_id: 'string', payee: 'string', amount: 'number', memo: 'string', frequency: 'string', next_due: 'string', end_date: 'string', auto_clear: 'number', paused: 'number', created_at: 'string' } as const,
+      indexes: ['account_id', 'next_due'],
+    },
   },
 }
 

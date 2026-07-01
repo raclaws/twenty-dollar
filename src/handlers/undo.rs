@@ -1,10 +1,11 @@
-use axum::{extract::State, Json};
+use axum::{extract::State, Json, Extension};
 use crate::app::AppState;
 use crate::error::AppResult;
 use crate::services;
 
 pub async fn undo(
     State(state): State<AppState>,
+    Extension(_user_id): Extension<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = state.db.clone();
     let description = tokio::task::spawn_blocking(move || {
@@ -20,6 +21,7 @@ pub async fn undo(
 
 pub async fn redo(
     State(state): State<AppState>,
+    Extension(_user_id): Extension<String>,
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = state.db.clone();
     let description = tokio::task::spawn_blocking(move || {

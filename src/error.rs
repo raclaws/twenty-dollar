@@ -17,6 +17,9 @@ pub enum AppError {
     #[error("Conflict: {0}")]
     Conflict(String),
 
+    #[error("Too many requests")]
+    RateLimited,
+
     #[error("Database error: {0}")]
     Database(#[from] rusqlite::Error),
 
@@ -34,6 +37,7 @@ impl IntoResponse for AppError {
             AppError::Validation(msg) => (StatusCode::BAD_REQUEST, msg.clone()),
             AppError::MonthLocked(m) => (StatusCode::CONFLICT, format!("Month {} is locked", m)),
             AppError::Conflict(msg) => (StatusCode::CONFLICT, msg.clone()),
+            AppError::RateLimited => (StatusCode::TOO_MANY_REQUESTS, "Too many attempts. Try again in a minute.".into()),
             AppError::Database(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Database error".into()),
             AppError::Pool(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Service unavailable".into()),
             AppError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal error".into()),

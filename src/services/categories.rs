@@ -5,14 +5,14 @@ use crate::models::category::*;
 use crate::models::undo::Mutation;
 use crate::services::undo::record_undo;
 
-pub fn list_categories(conn: &Connection) -> AppResult<Vec<CategoryGroup>> {
-    Ok(db::categories::list_groups_with_categories(conn)?)
+pub fn list_categories(conn: &Connection, user_id: &str) -> AppResult<Vec<CategoryGroup>> {
+    Ok(db::categories::list_groups_with_categories(conn, user_id)?)
 }
 
-pub fn create_group(conn: &Connection, input: CreateCategoryGroup) -> AppResult<CategoryGroup> {
+pub fn create_group(conn: &Connection, user_id: &str, input: CreateCategoryGroup) -> AppResult<CategoryGroup> {
     let id = uuid::Uuid::new_v4().to_string();
     let sort_order = input.sort_order.unwrap_or(0);
-    db::categories::insert_group(conn, &id, &input.name, sort_order)?;
+    db::categories::insert_group(conn, &id, &input.name, sort_order, user_id)?;
 
     let group = CategoryGroup { id: id.clone(), name: input.name, sort_order, categories: Vec::new() };
 
@@ -25,12 +25,12 @@ pub fn create_group(conn: &Connection, input: CreateCategoryGroup) -> AppResult<
     Ok(group)
 }
 
-pub fn update_group(conn: &Connection, id: &str, input: UpdateCategoryGroup) -> AppResult<CategoryGroup> {
-    let existing = db::categories::get_group(conn, id)?
+pub fn update_group(conn: &Connection, user_id: &str, id: &str, input: UpdateCategoryGroup) -> AppResult<CategoryGroup> {
+    let existing = db::categories::get_group(conn, id, user_id)?
         .ok_or_else(|| AppError::NotFound(format!("Group {}", id)))?;
 
-    db::categories::update_group(conn, id, input.name.as_deref(), input.sort_order)?;
-    let updated = db::categories::get_group(conn, id)?.unwrap();
+    db::categories::update_group(conn, id, user_id, input.name.as_deref(), input.sort_order)?;
+    let updated = db::categories::get_group(conn, id, user_id)?.unwrap();
 
     let prev = serde_json::json!({"name": existing.name, "sort_order": existing.sort_order});
     let fields = serde_json::json!({"name": updated.name, "sort_order": updated.sort_order});
@@ -44,11 +44,11 @@ pub fn update_group(conn: &Connection, id: &str, input: UpdateCategoryGroup) -> 
     Ok(updated)
 }
 
-pub fn delete_group(conn: &Connection, id: &str) -> AppResult<()> {
-    let existing = db::categories::get_group(conn, id)?
+pub fn delete_group(conn: &Connection, user_id: &str, id: &str) -> AppResult<()> {
+    let existing = db::categories::get_group(conn, id, user_id)?
         .ok_or_else(|| AppError::NotFound(format!("Group {}", id)))?;
 
-    db::categories::delete_group(conn, id)?;
+    db::categories::delete_group(conn, id, user_id)?;
 
     record_undo(conn, &format!("Delete group '{}'", existing.name), vec![
         Mutation::Delete { table: "category_groups".into(), id: id.to_string() }
@@ -59,7 +59,7 @@ pub fn delete_group(conn: &Connection, id: &str) -> AppResult<()> {
     Ok(())
 }
 
-pub fn create_category(conn: &Connection, input: CreateCategory) -> AppResult<Category> {
+pub fn create_category(conn: &Connection, _user_id: &str, input: CreateCategory) -> AppResult<Category> {
     let id = uuid::Uuid::new_v4().to_string();
     let cat = Category {
         id: id.clone(),
@@ -81,7 +81,7 @@ pub fn create_category(conn: &Connection, input: CreateCategory) -> AppResult<Ca
     Ok(cat)
 }
 
-pub fn update_category(conn: &Connection, id: &str, input: UpdateCategory) -> AppResult<Category> {
+pub fn update_category(conn: &Connection, _user_id: &str, id: &str, input: UpdateCategory) -> AppResult<Category> {
     let existing = db::categories::get_category(conn, id)?
         .ok_or_else(|| AppError::NotFound(format!("Category {}", id)))?;
 
@@ -108,7 +108,7 @@ pub fn update_category(conn: &Connection, id: &str, input: UpdateCategory) -> Ap
     Ok(updated)
 }
 
-pub fn delete_category(conn: &Connection, id: &str) -> AppResult<()> {
+pub fn delete_category(conn: &Connection, _user_id: &str, id: &str) -> AppResult<()> {
     let existing = db::categories::get_category(conn, id)?
         .ok_or_else(|| AppError::NotFound(format!("Category {}", id)))?;
 
@@ -123,7 +123,7 @@ pub fn delete_category(conn: &Connection, id: &str) -> AppResult<()> {
     Ok(())
 }
 
-pub fn reorder_categories(conn: &Connection, items: Vec<ReorderItem>) -> AppResult<()> {
+pub fn reorder_categories(conn: &Connection, _user_id: &str, items: Vec<ReorderItem>) -> AppResult<()> {
     let tuples: Vec<(String, i32)> = items.into_iter().map(|i| (i.id, i.sort_order)).collect();
     db::categories::reorder_categories(conn, &tuples)?;
     Ok(())

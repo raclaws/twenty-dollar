@@ -1,4 +1,4 @@
-use axum::{extract::{State, Query}, Json};
+use axum::{extract::{State, Query}, Json, Extension};
 use serde::Deserialize;
 use crate::app::AppState;
 use crate::error::AppResult;
@@ -11,6 +11,7 @@ pub struct PayeeQuery {
 
 pub async fn list(
     State(state): State<AppState>,
+    Extension(_user_id): Extension<String>,
     Query(params): Query<PayeeQuery>,
 ) -> AppResult<Json<Vec<String>>> {
     let pool = state.db.clone();
