@@ -43,6 +43,22 @@ export function createRestAdapter(_baseUrl: string): SyncAdapter {
         )
       }
 
+      if (table === 'transactions') {
+        const txns = Array.isArray(body) ? body : body.data ?? []
+        return txns.map((tx: any) => ({
+          id: tx.id,
+          account_id: tx.account_id,
+          payee_id: tx.payee_id ?? null,
+          category_id: tx.category_id ?? null,
+          date: tx.date,
+          amount: tx.amount,
+          memo: tx.memo ?? null,
+          cleared: typeof tx.cleared === 'boolean' ? (tx.cleared ? 1 : 0) : (tx.cleared ?? 0),
+          linked_id: tx.linked_id ?? null,
+          created_at: tx.created_at,
+        }))
+      }
+
       return Array.isArray(body) ? body : body.data ?? []
     },
 

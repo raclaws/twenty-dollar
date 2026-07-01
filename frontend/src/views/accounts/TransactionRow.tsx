@@ -38,9 +38,11 @@ const TransactionRow: Component<TransactionRowProps> = (props) => {
 
   const payeeName = () => {
     const pid = props.tx.payee_id as string | null
-    if (!pid) return ''
-    const p = payees().find(p => p.id === pid)
-    return p ? p.name as string : ''
+    if (pid) {
+      const p = payees().find(p => p.id === pid)
+      if (p) return p.name as string
+    }
+    return (props.tx.payee as string) ?? ''
   }
 
   const isTransfer = () => {

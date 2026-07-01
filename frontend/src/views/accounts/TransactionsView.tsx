@@ -20,11 +20,11 @@ const TransactionsView: Component = () => {
       localStorage.setItem(STORAGE_KEY, paramId)
     } else {
       const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
+      const active = activeAccounts()
+      if (saved && active.some(a => a.id === saved)) {
         setSelectedAccount(saved)
       } else {
-        const first = activeAccounts()[0]
-        if (first) setSelectedAccount(first.id as string)
+        setSelectedAccount(undefined)
       }
     }
   })
