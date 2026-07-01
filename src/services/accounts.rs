@@ -10,7 +10,7 @@ pub fn list_accounts(conn: &Connection, user_id: &str) -> AppResult<Vec<Account>
 }
 
 pub fn create_account(conn: &Connection, user_id: &str, input: CreateAccount) -> AppResult<Account> {
-    let id = uuid::Uuid::new_v4().to_string();
+    let id = input.id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     let now = chrono::Utc::now().to_rfc3339();
     let acc = Account {
         id: id.clone(),
@@ -21,7 +21,7 @@ pub fn create_account(conn: &Connection, user_id: &str, input: CreateAccount) ->
     };
     db::accounts::insert_account(conn, &acc, user_id)?;
 
-    record_undo(conn, &format!("Create account '{}'", acc.name), vec![
+    record_undo(conn, user_id, &format!("Create account '{}'", acc.name), vec![
         Mutation::Insert { table: "accounts".into(), data: serde_json::to_value(&acc).unwrap() }
     ], vec![
         Mutation::Delete { table: "accounts".into(), id }
@@ -45,7 +45,7 @@ pub fn update_account(conn: &Connection, user_id: &str, id: &str, input: UpdateA
     let updated = db::accounts::get_account(conn, id, user_id)?.unwrap();
     let fields = serde_json::to_value(&updated).unwrap();
 
-    record_undo(conn, &format!("Update account '{}'", updated.name), vec![
+    record_undo(conn, user_id, &format!("Update account '{}'", updated.name), vec![
         Mutation::Update { table: "accounts".into(), id: id.to_string(), fields: fields.clone(), prev: prev.clone() }
     ], vec![
         Mutation::Update { table: "accounts".into(), id: id.to_string(), fields: prev, prev: fields }
@@ -60,7 +60,7 @@ pub fn delete_account(conn: &Connection, user_id: &str, id: &str) -> AppResult<(
 
     db::accounts::delete_account(conn, id, user_id)?;
 
-    record_undo(conn, &format!("Delete account '{}'", existing.name), vec![
+    record_undo(conn, user_id, &format!("Delete account '{}'", existing.name), vec![
         Mutation::Delete { table: "accounts".into(), id: id.to_string() }
     ], vec![
         Mutation::Insert { table: "accounts".into(), data: serde_json::to_value(&existing).unwrap() }

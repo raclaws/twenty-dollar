@@ -105,3 +105,7 @@ async function drainOutbox() {
 export function getOutboxCount(): number {
   return outbox.length
 }
+
+export function drainOutboxNow() {
+  drainOutbox()
+}

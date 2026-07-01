@@ -1,6 +1,7 @@
 import { createSyncStore, createReactiveLayer, createSyncManager } from './sync-engine'
 import type { SyncStore, ReactiveStore, SyncManager } from './sync-engine'
-import { createRestAdapter } from './api'
+import { createRestAdapter, apiPost } from './api'
+import { updateSyncStatus } from '~/components/SyncIndicator'
 
 export interface AppStore {
   raw: SyncStore
@@ -57,6 +58,7 @@ export async function initStore(): Promise<AppStore> {
     store: raw,
     tables: Object.keys(STORE_CONFIG.tables),
     reactive,
+    onSynced: () => updateSyncStatus('connected'),
     onError: (err) => console.error('[sync]', err),
   })
 
@@ -69,21 +71,28 @@ export async function initStore(): Promise<AppStore> {
   const now = new Date().toISOString()
   for (const acc of accounts) {
     if (!accountPayeeIds.has(acc.id as string)) {
+      const payeeId = crypto.randomUUID()
       await raw.put('payees', {
-        id: crypto.randomUUID(),
+        id: payeeId,
         name: acc.name as string,
         type: 'account',
         account_id: acc.id as string,
         created_at: now,
       })
+      apiPost('/api/payees', { id: payeeId, name: acc.name as string, type: 'account', account_id: acc.id as string }).catch(() => {})
     }
   }
   if (accounts.length > 0) reactive.notify('payees')
 
-  // Seed demo data if truly fresh (no accounts AND no categories)
-  const categories = await raw.getAll('categories')
-  if (accounts.length === 0 && categories.length === 0) {
-    await seedDemoData(raw, reactive)
+  // Seed demo data only on truly first launch (never seeded before)
+  const hasSeeded = localStorage.getItem('twenty-dollar:seeded')
+  if (!hasSeeded) {
+    const categories = await raw.getAll('categories')
+    const accounts = await raw.getAll('accounts')
+    if (accounts.length === 0 && categories.length === 0) {
+      await seedDemoData(raw, reactive)
+    }
+    localStorage.setItem('twenty-dollar:seeded', '1')
   }
 
   return { raw, reactive, sync }

@@ -18,7 +18,7 @@ export function createRestAdapter(_baseUrl: string): SyncAdapter {
   return {
     async hydrate(table: string) {
       const endpoint = TABLE_TO_ENDPOINT[table]
-      if (!endpoint) return []
+      if (!endpoint) return null as any
 
       const res = await fetch(endpoint)
       if (!res.ok) return []

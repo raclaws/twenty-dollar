@@ -167,7 +167,7 @@ const BudgetView: Component = () => {
     const id = crypto.randomUUID()
     await raw.put('category_groups', { id, name, sort_order: categoryGroups().length })
     reactive.notify('category_groups')
-    apiPost('/api/category-groups', { name }).catch(() => {})
+    apiPost('/api/category-groups', { id, name }).catch(() => {})
     pushUndo({
       description: `Created group "${name}"`,
       async undo() { await raw.delete('category_groups', id); reactive.notify('category_groups') },
@@ -184,7 +184,7 @@ const BudgetView: Component = () => {
     const sortOrder = categories().filter(c => c.group_id === groupId).length
     await raw.put('categories', { id, group_id: groupId, name, sort_order: sortOrder })
     reactive.notify('categories')
-    apiPost('/api/categories', { group_id: groupId, name }).catch(() => {})
+    apiPost('/api/categories', { id, group_id: groupId, name }).catch(() => {})
     pushUndo({
       description: `Created category "${name}"`,
       async undo() { await raw.delete('categories', id); reactive.notify('categories') },

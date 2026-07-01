@@ -93,7 +93,7 @@ pub fn build_router(pool: DbPool) -> Router {
         .route("/api/transfers", post(handlers::transfers::create))
         .route("/api/transfers/{id}", delete(handlers::transfers::delete))
         // Payees
-        .route("/api/payees", get(handlers::payees::list))
+        .route("/api/payees", get(handlers::payees::list).post(handlers::payees::create))
         // Undo/Redo
         .route("/api/undo", post(handlers::undo::undo))
         .route("/api/redo", post(handlers::undo::redo))

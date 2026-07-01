@@ -1,4 +1,5 @@
 import { createSignal, createMemo, onMount, onCleanup, type Component } from 'solid-js'
+import { getOutboxCount, drainOutboxNow } from '~/lib/server-first'
 
 export type SyncStatus = 'connected' | 'syncing' | 'offline' | 'error' | 'reconnecting'
 
@@ -57,6 +58,7 @@ function startRetryLoop() {
       if (resp.ok) {
         updateSyncStatus('connected')
         stopRetryLoop()
+        if (getOutboxCount() > 0) drainOutboxNow()
       } else {
         updateSyncStatus('offline')
       }
@@ -105,6 +107,7 @@ const SyncIndicator: Component = () => {
   const status = displayStatus
 
   const boxClass = createMemo(() => {
+    if (pendingCount() > 0) return 'sync-box--pending'
     switch (status()) {
       case 'connected': return 'sync-box--connected'
       case 'syncing': return 'sync-box--syncing'
@@ -115,6 +118,8 @@ const SyncIndicator: Component = () => {
   })
 
   const label = createMemo(() => {
+    const pending = pendingCount()
+    if (pending > 0) return `Pending (${pending})`
     switch (status()) {
       case 'connected': return lastSynced() ? 'Saved' : 'Connected'
       case 'syncing': return 'Saving...'

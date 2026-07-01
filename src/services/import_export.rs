@@ -126,6 +126,7 @@ pub fn import_csv(conn: &Connection, user_id: &str, csv_data: &str, default_acco
 
         crate::services::undo::record_undo(
             conn,
+            user_id,
             &format!("Import {} transactions", count),
             vec![],
             inverse,

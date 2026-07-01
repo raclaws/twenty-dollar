@@ -3,14 +3,14 @@ use crate::db;
 use crate::error::AppResult;
 use crate::models::undo::{Mutation, UndoOperation};
 
-pub fn record_undo(conn: &Connection, description: &str, forward: Vec<Mutation>, inverse: Vec<Mutation>) -> AppResult<()> {
+pub fn record_undo(conn: &Connection, user_id: &str, description: &str, forward: Vec<Mutation>, inverse: Vec<Mutation>) -> AppResult<()> {
     let op = UndoOperation {
         description: description.to_string(),
         forward,
         inverse,
     };
     let now = chrono::Utc::now().to_rfc3339();
-    db::undo::push_undo(conn, &op, &now)?;
+    db::undo::push_undo(conn, &op, user_id, &now)?;
     Ok(())
 }
 

@@ -2,7 +2,7 @@ import { createSignal, createEffect, Show, type Component } from 'solid-js'
 import { Target, Calendar, Repeat, X } from 'lucide-solid'
 import { parseMoney, formatMoneyUnsigned } from '~/lib/format'
 import { useStore } from '~/App'
-import { apiPost } from '~/lib/api'
+import { apiPatch } from '~/lib/api'
 import type { Record } from '~/lib/sync-engine/types'
 
 interface TargetDialogProps {
@@ -81,8 +81,7 @@ const TargetDialog: Component<TargetDialogProps> = (props) => {
     })
     reactive.notify('categories')
 
-    apiPost('/api/categories/target', {
-      category_id: props.categoryId,
+    apiPatch(`/api/categories/${props.categoryId}`, {
       target_type: type,
       target_amount: amount,
       target_date: targetDate,

@@ -2,6 +2,7 @@ pub mod account;
 pub mod assignment;
 pub mod budget;
 pub mod category;
+pub mod payee;
 pub mod schedule;
 pub mod transaction;
 pub mod transfer;

@@ -26,7 +26,7 @@ pub async fn get_budget(
 
 pub async fn assign(
     State(state): State<AppState>,
-    Extension(_user_id): Extension<String>,
+    Extension(user_id): Extension<String>,
     Json(input): Json<AssignRequest>,
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = state.db.clone();
@@ -42,6 +42,7 @@ pub async fn assign(
         let prev_amount = prev.map(|(_, a)| a).unwrap_or(0);
         services::undo::record_undo(
             &conn,
+            &user_id,
             &format!("Assign {} to category", input.amount),
             vec![crate::models::undo::Mutation::Update {
                 table: "assignments".into(),
@@ -68,7 +69,7 @@ pub async fn assign(
 
 pub async fn move_money(
     State(state): State<AppState>,
-    Extension(_user_id): Extension<String>,
+    Extension(user_id): Extension<String>,
     Json(input): Json<MoveRequest>,
 ) -> AppResult<Json<serde_json::Value>> {
     let pool = state.db.clone();
@@ -94,6 +95,7 @@ pub async fn move_money(
 
         services::undo::record_undo(
             &conn,
+            &user_id,
             &format!("Move {} between categories", input.amount),
             vec![
                 crate::models::undo::Mutation::Update {

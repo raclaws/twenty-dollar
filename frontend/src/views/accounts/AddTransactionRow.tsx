@@ -211,6 +211,7 @@ const AddTransactionRow: Component<AddTransactionRowProps> = (props) => {
           reactive.notify('transactions')
         },
         request: () => apiPost('/api/transactions', {
+          id,
           account_id: props.accountId,
           payee: destPayee?.name ?? null,
           payee_id: payeeId(),
@@ -277,6 +278,7 @@ const AddTransactionRow: Component<AddTransactionRowProps> = (props) => {
         if (splitRecords.length) reactive.notify('split_entries')
       },
       request: () => apiPost('/api/transactions', {
+        id,
         account_id: props.accountId,
         payee: payeeLabel() || null,
         payee_id: payeeId(),

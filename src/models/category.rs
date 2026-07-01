@@ -54,6 +54,7 @@ pub struct Category {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateCategoryGroup {
+    pub id: Option<String>,
     pub name: String,
     pub icon: Option<String>,
     pub sort_order: Option<i32>,
@@ -68,6 +69,7 @@ pub struct UpdateCategoryGroup {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateCategory {
+    pub id: Option<String>,
     pub group_id: String,
     pub name: String,
     pub icon: Option<String>,

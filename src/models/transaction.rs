@@ -28,6 +28,7 @@ pub struct SplitEntry {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateTransaction {
+    pub id: Option<String>,
     pub account_id: String,
     pub category_id: Option<String>,
     pub date: String,

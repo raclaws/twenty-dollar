@@ -5,7 +5,7 @@ import { createQuery } from '~/lib/solid-binding'
 import { apiPatch, apiDelete } from '~/lib/api'
 import { serverFirst } from '~/lib/server-first'
 import { confirmAction } from '~/components/ConfirmDialog'
-import { pushUndo } from '~/lib/undo'
+import { pushUndo, useUndoKeyboard } from '~/lib/undo'
 import { clampMenuPosition } from '~/lib/ui'
 import { groupItems, type GroupConfig } from '~/lib/grouping'
 import GroupHeader from '~/components/GroupHeader'
@@ -23,6 +23,7 @@ interface TransactionTableProps {
 
 const TransactionTable: Component<TransactionTableProps> = (props) => {
   const { raw, reactive } = useStore()
+  useUndoKeyboard()
   const allTransactions = createQuery(reactive, 'transactions')
   const accounts = createQuery(reactive, 'accounts')
   const payees = createQuery(reactive, 'payees')

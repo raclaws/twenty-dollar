@@ -30,6 +30,7 @@ pub fn setup(pool: &DbPool, req: SetupRequest) -> AppResult<(AuthResponse, Sessi
     };
 
     db::auth::create_user(&conn, &user)?;
+    crate::services::seed::seed_starter_categories(&conn, &user.id)?;
     let session = create_session_for(&conn, &user.id, &now)?;
 
     Ok((
@@ -59,6 +60,7 @@ pub fn signup(pool: &DbPool, req: SetupRequest) -> AppResult<(AuthResponse, Sess
     };
 
     db::auth::create_user(&conn, &user)?;
+    crate::services::seed::seed_starter_categories(&conn, &user.id)?;
     let session = create_session_for(&conn, &user.id, &now)?;
 
     Ok((

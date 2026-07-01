@@ -42,6 +42,7 @@ pub struct Account {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateAccount {
+    pub id: Option<String>,
     pub name: String,
     #[serde(rename = "type")]
     pub account_type: AccountType,

@@ -50,6 +50,12 @@
   box-shadow: 0 0 6px 2px #ff6b6b;
 }
 
+.sync-box--pending {
+  background: var(--c-warning, #f9e2af);
+  box-shadow: 0 0 6px 2px var(--c-warning, #f9e2af);
+  animation: sync-pulse 1.5s infinite;
+}
+
 @keyframes sync-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }

@@ -6,7 +6,7 @@ import { useStore } from '~/App'
 import { createQuery } from '~/lib/solid-binding'
 import { formatMoneyUnsigned } from '~/lib/format'
 import { apiPost, apiPatch, apiDelete } from '~/lib/api'
-import { pushUndo } from '~/lib/undo'
+import { pushUndo, useUndoKeyboard } from '~/lib/undo'
 import { clampMenuPosition } from '~/lib/ui'
 import { confirmAction } from '~/components/ConfirmDialog'
 import EntityPicker, { type EntityPickerSection } from '~/components/EntityPicker'
@@ -32,6 +32,7 @@ type CellField = 'name' | 'type'
 const AccountsView: Component = () => {
   const { raw, reactive } = useStore()
   const navigate = useNavigate()
+  useUndoKeyboard()
   const accounts = createQuery(reactive, 'accounts')
   const transactions = createQuery(reactive, 'transactions')
 
@@ -99,7 +100,8 @@ const AccountsView: Component = () => {
     reactive.notify('accounts')
     reactive.notify('payees')
 
-    apiPost('/api/accounts', { name, type: newType() }).catch(() => {})
+    apiPost('/api/accounts', { id, name, type: newType() }).catch(() => {})
+    apiPost('/api/payees', { id: payeeId, name, type: 'account', account_id: id }).catch(() => {})
 
     pushUndo({
       description: `Created account "${name}"`,

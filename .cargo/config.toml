@@ -1,0 +1,6 @@
+[env]
+CC = "C:\\Users\\User\\mingw64\\mingw64\\bin\\gcc.exe"
+AR = "C:\\Users\\User\\mingw64\\mingw64\\bin\\ar.exe"
+
+[target.x86_64-pc-windows-gnu]
+linker = "C:\\Users\\User\\mingw64\\mingw64\\bin\\gcc.exe"

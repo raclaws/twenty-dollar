@@ -57,7 +57,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             category_id TEXT REFERENCES categories(id) ON DELETE SET NULL,
             date TEXT NOT NULL,
             payee TEXT,
-            payee_id TEXT REFERENCES payees(id) ON DELETE SET NULL,
+            payee_id TEXT,
             amount INTEGER NOT NULL,
             memo TEXT,
             cleared INTEGER NOT NULL DEFAULT 0,
@@ -120,6 +120,8 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             name TEXT NOT NULL,
+            type TEXT,
+            account_id TEXT,
             created_at TEXT NOT NULL
         );
 

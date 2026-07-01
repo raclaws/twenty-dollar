@@ -23,12 +23,12 @@ fn validate_column(col: &str) -> Result<(), rusqlite::Error> {
     }
 }
 
-pub fn push_undo(conn: &Connection, op: &UndoOperation, created_at: &str) -> Result<(), rusqlite::Error> {
-    conn.execute("DELETE FROM undo_log WHERE undone = 1", [])?;
+pub fn push_undo(conn: &Connection, op: &UndoOperation, user_id: &str, created_at: &str) -> Result<(), rusqlite::Error> {
+    conn.execute("DELETE FROM undo_log WHERE undone = 1 AND user_id = ?1", params![user_id])?;
     let json = serde_json::to_string(op).unwrap();
     conn.execute(
-        "INSERT INTO undo_log (operation, undone, created_at) VALUES (?1, 0, ?2)",
-        params![json, created_at],
+        "INSERT INTO undo_log (user_id, operation, undone, created_at) VALUES (?1, ?2, 0, ?3)",
+        params![user_id, json, created_at],
     )?;
     Ok(())
 }

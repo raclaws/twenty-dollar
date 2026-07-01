@@ -9,7 +9,7 @@ pub fn list_transfers(conn: &Connection) -> AppResult<Vec<Transfer>> {
     Ok(db::transfers::list_transfers(conn)?)
 }
 
-pub fn create_transfer(conn: &Connection, input: CreateTransfer) -> AppResult<Transfer> {
+pub fn create_transfer(conn: &Connection, user_id: &str, input: CreateTransfer) -> AppResult<Transfer> {
     if input.amount <= 0 {
         return Err(AppError::Validation("Transfer amount must be positive".into()));
     }
@@ -28,7 +28,7 @@ pub fn create_transfer(conn: &Connection, input: CreateTransfer) -> AppResult<Tr
     };
     db::transfers::insert_transfer(conn, &t)?;
 
-    record_undo(conn, "Create transfer", vec![
+    record_undo(conn, user_id, "Create transfer", vec![
         Mutation::Insert { table: "transfers".into(), data: serde_json::to_value(&t).unwrap() }
     ], vec![
         Mutation::Delete { table: "transfers".into(), id }
@@ -37,13 +37,13 @@ pub fn create_transfer(conn: &Connection, input: CreateTransfer) -> AppResult<Tr
     Ok(t)
 }
 
-pub fn delete_transfer(conn: &Connection, id: &str) -> AppResult<()> {
+pub fn delete_transfer(conn: &Connection, user_id: &str, id: &str) -> AppResult<()> {
     let existing = db::transfers::get_transfer(conn, id)?
         .ok_or_else(|| AppError::NotFound(format!("Transfer {}", id)))?;
 
     db::transfers::delete_transfer(conn, id)?;
 
-    record_undo(conn, "Delete transfer", vec![
+    record_undo(conn, user_id, "Delete transfer", vec![
         Mutation::Delete { table: "transfers".into(), id: id.to_string() }
     ], vec![
         Mutation::Insert { table: "transfers".into(), data: serde_json::to_value(&existing).unwrap() }

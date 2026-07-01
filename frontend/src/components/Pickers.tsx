@@ -2,6 +2,7 @@ import { type Component } from 'solid-js'
 import EntityPicker, { type EntityPickerSection } from './EntityPicker'
 import { useStore } from '~/App'
 import { createQuery } from '~/lib/solid-binding'
+import { apiPost } from '~/lib/api'
 import type { Record } from '~/lib/sync-engine/types'
 
 // ─── Payee Picker ───
@@ -38,6 +39,7 @@ export function PayeePicker(props: PayeePickerProps) {
     const now = new Date().toISOString()
     await raw.put('payees', { id, name, type: 'external', account_id: null, created_at: now })
     reactive.notify('payees')
+    apiPost('/api/payees', { id, name, type: 'external' }).catch(() => {})
     props.onPick(id)
   }
 
@@ -92,6 +94,7 @@ export function CategoryPicker(props: CategoryPickerProps) {
     const sortOrder = props.categories.filter(c => c.group_id === groupId).length
     await raw.put('categories', { id, group_id: groupId, name, sort_order: sortOrder })
     reactive.notify('categories')
+    apiPost('/api/categories', { id, group_id: groupId, name }).catch(() => {})
     props.onPick(id)
   }
 
@@ -100,6 +103,7 @@ export function CategoryPicker(props: CategoryPickerProps) {
     const sortOrder = props.groups.length
     await raw.put('category_groups', { id: groupId, name, sort_order: sortOrder })
     reactive.notify('category_groups')
+    apiPost('/api/category-groups', { id: groupId, name }).catch(() => {})
   }
 
   return (

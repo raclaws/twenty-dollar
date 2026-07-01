@@ -37,7 +37,7 @@ export async function performUndo() {
     setUndoStack(s => s.slice(0, -1))
     await entry.undo()
     setRedoStack(s => [...s, entry])
-    showToast(`Undid: ${entry.description}`)
+    dismissToast()
   } finally {
     busy = false
   }

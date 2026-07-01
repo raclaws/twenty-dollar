@@ -93,7 +93,7 @@ const GroupRow: Component<GroupRowProps> = (props) => {
     const updated = { ...group, icon: newIcon }
     await raw.put('category_groups', updated)
     reactive.notify('category_groups')
-    apiPatch(`/api/category_groups/${groupId}`, { icon: newIcon }).catch(() => {})
+    apiPatch(`/api/category-groups/${groupId}`, { icon: newIcon }).catch(() => {})
     pushUndo({
       description: `Changed icon for group ${props.group.groupName}`,
       async undo() { await raw.put('category_groups', group); reactive.notify('category_groups') },

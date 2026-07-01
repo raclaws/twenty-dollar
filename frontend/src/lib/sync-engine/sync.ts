@@ -37,8 +37,8 @@ export function createSyncManager(options: SyncManagerOptions): SyncManager {
       const since = lastSync[table] || 0
       try {
         const records = await adapter.hydrate(table, since || undefined)
-        if (records.length === 0 && !since) {
-          // No server data and first sync — preserve local IDB (e.g. seeded data)
+        if (records === null) {
+          // null means no endpoint — preserve local IDB
           lastSync[table] = Date.now()
           continue
         }

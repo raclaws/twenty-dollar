@@ -26,7 +26,7 @@ fn txn_to_row_json(txn: &Transaction) -> serde_json::Value {
     })
 }
 
-pub fn create_transaction(conn: &Connection, input: CreateTransaction) -> AppResult<Transaction> {
+pub fn create_transaction(conn: &Connection, user_id: &str, input: CreateTransaction) -> AppResult<Transaction> {
     let month = &input.date[..7];
     month_lock::assert_month_unlocked(conn, month)?;
 
@@ -34,7 +34,7 @@ pub fn create_transaction(conn: &Connection, input: CreateTransaction) -> AppRes
         validate_splits(input.amount, &input.splits)?;
     }
 
-    let id = uuid::Uuid::new_v4().to_string();
+    let id = input.id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     let now = chrono::Utc::now().to_rfc3339();
 
     let splits: Vec<SplitEntry> = input.splits.iter().map(|s| {
@@ -66,7 +66,7 @@ pub fn create_transaction(conn: &Connection, input: CreateTransaction) -> AppRes
 
     db::transactions::insert_transaction(conn, &txn)?;
 
-    record_undo(conn, &format!("Create transaction {}", txn.payee.as_deref().unwrap_or("(no payee)")), vec![
+    record_undo(conn, user_id, &format!("Create transaction {}", txn.payee.as_deref().unwrap_or("(no payee)")), vec![
         Mutation::Insert { table: "transactions".into(), data: txn_to_row_json(&txn) }
     ], vec![
         Mutation::Delete { table: "transactions".into(), id }
@@ -75,7 +75,7 @@ pub fn create_transaction(conn: &Connection, input: CreateTransaction) -> AppRes
     Ok(txn)
 }
 
-pub fn update_transaction(conn: &Connection, id: &str, input: UpdateTransaction) -> AppResult<Transaction> {
+pub fn update_transaction(conn: &Connection, user_id: &str, id: &str, input: UpdateTransaction) -> AppResult<Transaction> {
     let existing = db::transactions::get_transaction(conn, id)?
         .ok_or_else(|| AppError::NotFound(format!("Transaction {}", id)))?;
 
@@ -127,7 +127,7 @@ pub fn update_transaction(conn: &Connection, id: &str, input: UpdateTransaction)
     let updated = db::transactions::get_transaction(conn, id)?.unwrap();
     let fields = txn_to_row_json(&updated);
 
-    record_undo(conn, &format!("Update transaction {}", id), vec![
+    record_undo(conn, user_id, &format!("Update transaction {}", id), vec![
         Mutation::Update { table: "transactions".into(), id: id.to_string(), fields: fields.clone(), prev: prev.clone() }
     ], vec![
         Mutation::Update { table: "transactions".into(), id: id.to_string(), fields: prev, prev: fields }
@@ -136,7 +136,7 @@ pub fn update_transaction(conn: &Connection, id: &str, input: UpdateTransaction)
     Ok(updated)
 }
 
-pub fn delete_transaction(conn: &Connection, id: &str) -> AppResult<()> {
+pub fn delete_transaction(conn: &Connection, user_id: &str, id: &str) -> AppResult<()> {
     let existing = db::transactions::get_transaction(conn, id)?
         .ok_or_else(|| AppError::NotFound(format!("Transaction {}", id)))?;
 
@@ -145,7 +145,7 @@ pub fn delete_transaction(conn: &Connection, id: &str) -> AppResult<()> {
 
     db::transactions::delete_transaction(conn, id)?;
 
-    record_undo(conn, &format!("Delete transaction {}", id), vec![
+    record_undo(conn, user_id, &format!("Delete transaction {}", id), vec![
         Mutation::Delete { table: "transactions".into(), id: id.to_string() }
     ], vec![
         Mutation::Insert { table: "transactions".into(), data: txn_to_row_json(&existing) }
