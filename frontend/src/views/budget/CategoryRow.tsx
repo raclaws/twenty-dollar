@@ -2,11 +2,12 @@ import { Show, For, createSignal, onMount, onCleanup, type Component, type Acces
 import { ChevronLeft, AlertTriangle, TrendingDown, CircleDot, CheckCircle, Target, Repeat, Calendar, PiggyBank } from 'lucide-solid'
 import MoneyDisplay from '~/components/MoneyDisplay'
 import HealthRing from '~/components/HealthRing'
+import IconPicker, { EntityIcon } from '~/components/IconPicker'
 import { AmountInput } from '~/components/CellInputs'
 import { formatMoneyUnsigned } from '~/lib/format'
 import type { CategoryBudget } from '~/lib/budget-engine'
 import { useStore, useBudgetFilter, type BudgetFilter } from '~/App'
-import { apiPost } from '~/lib/api'
+import { apiPost, apiPatch } from '~/lib/api'
 import { pushUndo } from '~/lib/undo'
 import type { Record } from '~/lib/sync-engine/types'
 
@@ -29,6 +30,7 @@ const CategoryRow: Component<CategoryRowProps> = (props) => {
   const [editing, setEditing] = createSignal(false)
   const [ctxMenu, setCtxMenu] = createSignal<{ x: number; y: number } | null>(null)
   const [ctxSub, setCtxSub] = createSignal<'groups' | null>(null)
+  const [iconPickerOpen, setIconPickerOpen] = createSignal(false)
   let rowRef: HTMLDivElement | undefined
   let ctxMenuRef: HTMLDivElement | undefined
 
@@ -144,6 +146,23 @@ const CategoryRow: Component<CategoryRowProps> = (props) => {
     }
   }
 
+  async function commitIcon(newIcon: string | null) {
+    const catId = props.budget.categoryId
+    const cat = await raw.get('categories', catId)
+    if (!cat) return
+    const oldIcon = (cat.icon as string) ?? null
+    if (newIcon === oldIcon) return
+    const updated = { ...cat, icon: newIcon }
+    await raw.put('categories', updated)
+    reactive.notify('categories')
+    apiPatch(`/api/categories/${catId}`, { icon: newIcon }).catch(() => {})
+    pushUndo({
+      description: `Changed icon for ${props.budget.categoryName}`,
+      async undo() { await raw.put('categories', cat); reactive.notify('categories') },
+      async redo() { await raw.put('categories', updated); reactive.notify('categories') },
+    })
+  }
+
   function handleContextMenu(e: MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
@@ -155,8 +174,19 @@ const CategoryRow: Component<CategoryRowProps> = (props) => {
   return (
     <>
     <div ref={rowRef} class={`budget-row ${isHighlighted() ? 'budget-row--highlighted' : ''}`} onContextMenu={handleContextMenu}>
-      <div class="budget-row__name" onClick={() => props.onViewDetail?.(props.budget.categoryId)} style={{ cursor: 'pointer' }}>
-        {props.budget.categoryName}
+      <div class="budget-row__name" style={{ cursor: 'pointer', position: 'relative' }}>
+        <span class="budget-row__icon" onClick={(e) => { e.stopPropagation(); setIconPickerOpen(!iconPickerOpen()) }} title="Change icon">
+          <EntityIcon icon={props.budget.categoryIcon} name={props.budget.categoryName} size={16} />
+        </span>
+        <span onClick={() => props.onViewDetail?.(props.budget.categoryId)}>{props.budget.categoryName}</span>
+        <Show when={iconPickerOpen()}>
+          <IconPicker
+            value={props.budget.categoryIcon}
+            entityName={props.budget.categoryName}
+            onPick={(iconId) => { commitIcon(iconId); setIconPickerOpen(false) }}
+            onCancel={() => setIconPickerOpen(false)}
+          />
+        </Show>
       </div>
       <div class="budget-row__target">
         <Show when={props.budget.target} fallback={
@@ -246,6 +276,7 @@ const CategoryRow: Component<CategoryRowProps> = (props) => {
               <div class="ctx-menu__item" onClick={() => { closeCtxMenu(); props.onViewDetail?.(props.budget.categoryId) }}>View transactions...</div>
               <div class="ctx-menu__item" onClick={() => { closeCtxMenu(); props.onCoverFrom?.(props.budget.categoryId) }}>Move budget...</div>
               <div class="ctx-menu__item" onClick={() => { closeCtxMenu(); props.onSetTarget?.(props.budget.categoryId) }}>Set target...</div>
+              <div class="ctx-menu__item" onClick={() => { closeCtxMenu(); setIconPickerOpen(true) }}>Change icon...</div>
               <Show when={props.otherGroups.length > 0}>
                 <div class="ctx-menu__item" onClick={() => setCtxSub('groups')}>Change group...</div>
               </Show>

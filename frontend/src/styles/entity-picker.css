@@ -75,7 +75,7 @@
 .entity-picker__item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--sp-2);
   min-height: 32px;
   padding: var(--sp-2) var(--sp-2);
   padding-left: var(--sp-4);
@@ -114,7 +114,7 @@
 .entity-picker__meta {
   font-size: var(--fs-xs);
   color: var(--c-overlay0);
-  margin-left: var(--sp-2);
+  margin-left: auto;
   flex-shrink: 0;
 }
 

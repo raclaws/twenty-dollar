@@ -258,18 +258,15 @@ const AddTransactionRow: Component<AddTransactionRowProps> = (props) => {
 
     apiPost('/api/transactions', {
       account_id: props.accountId,
+      payee: payeeLabel() || null,
       payee_id: payeeId(),
       category_id: txRecord.category_id,
       date: txRecord.date,
       amount: txRecord.amount,
       memo: txRecord.memo,
+      cleared: isCleared(),
       splits: splitRecords.map(s => ({ category_id: s.category_id, amount: s.amount, memo: s.memo })),
-    }).catch(async () => {
-      await raw.delete('transactions', id)
-      for (const sr of splitRecords) await raw.delete('split_entries', sr.id)
-      reactive.notify('transactions')
-      reactive.notify('split_entries')
-    })
+    }).catch(() => {})
 
     pushUndo({
       description: `Added transaction: ${payeeLabel() || 'Unknown'} ${(amount / 100).toFixed(2)}`,

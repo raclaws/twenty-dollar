@@ -85,6 +85,19 @@
   position: relative;
 }
 
+.accounts-table__name-content {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.accounts-table__type-icon {
+  display: flex;
+  align-items: center;
+  color: var(--c-overlay0);
+  flex-shrink: 0;
+}
+
 .accounts-table__row .accounts-table__col--type {
   font-size: var(--fs-md);
   color: var(--c-subtext0);

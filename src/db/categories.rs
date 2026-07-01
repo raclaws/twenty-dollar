@@ -4,13 +4,14 @@ use crate::models::category::{Category, CategoryGroup, TargetType};
 pub fn list_groups_with_categories(conn: &Connection, user_id: &str) -> Result<Vec<CategoryGroup>, rusqlite::Error> {
     let mut groups = Vec::new();
     let mut stmt = conn.prepare(
-        "SELECT id, name, sort_order FROM category_groups WHERE user_id = ?1 ORDER BY sort_order, name"
+        "SELECT id, name, icon, sort_order FROM category_groups WHERE user_id = ?1 ORDER BY sort_order, name"
     )?;
     let rows = stmt.query_map(params![user_id], |row| {
         Ok(CategoryGroup {
             id: row.get(0)?,
             name: row.get(1)?,
-            sort_order: row.get(2)?,
+            icon: row.get(2)?,
+            sort_order: row.get(3)?,
             categories: Vec::new(),
         })
     })?;
@@ -25,22 +26,23 @@ pub fn list_groups_with_categories(conn: &Connection, user_id: &str) -> Result<V
 
     let placeholders: String = group_ids.iter().enumerate().map(|(i, _)| format!("?{}", i + 1)).collect::<Vec<_>>().join(",");
     let sql = format!(
-        "SELECT id, group_id, name, sort_order, target_type, target_amount, target_date
+        "SELECT id, group_id, name, icon, sort_order, target_type, target_amount, target_date
          FROM categories WHERE group_id IN ({}) ORDER BY sort_order, name",
         placeholders
     );
     let mut cat_stmt = conn.prepare(&sql)?;
     let params: Vec<&dyn rusqlite::types::ToSql> = group_ids.iter().map(|id| id as &dyn rusqlite::types::ToSql).collect();
     let cats = cat_stmt.query_map(params.as_slice(), |row| {
-        let tt: Option<String> = row.get(4)?;
+        let tt: Option<String> = row.get(5)?;
         Ok(Category {
             id: row.get(0)?,
             group_id: row.get(1)?,
             name: row.get(2)?,
-            sort_order: row.get(3)?,
+            icon: row.get(3)?,
+            sort_order: row.get(4)?,
             target_type: tt.and_then(|s| TargetType::from_str(&s)),
-            target_amount: row.get(5)?,
-            target_date: row.get(6)?,
+            target_amount: row.get(6)?,
+            target_date: row.get(7)?,
         })
     })?;
 
@@ -61,32 +63,38 @@ pub fn list_groups_with_categories(conn: &Connection, user_id: &str) -> Result<V
 
 pub fn get_group(conn: &Connection, id: &str, user_id: &str) -> Result<Option<CategoryGroup>, rusqlite::Error> {
     conn.query_row(
-        "SELECT id, name, sort_order FROM category_groups WHERE id = ?1 AND user_id = ?2",
+        "SELECT id, name, icon, sort_order FROM category_groups WHERE id = ?1 AND user_id = ?2",
         params![id, user_id],
         |row| Ok(CategoryGroup {
             id: row.get(0)?,
             name: row.get(1)?,
-            sort_order: row.get(2)?,
+            icon: row.get(2)?,
+            sort_order: row.get(3)?,
             categories: Vec::new(),
         }),
     ).optional()
 }
 
-pub fn insert_group(conn: &Connection, id: &str, name: &str, sort_order: i32, user_id: &str) -> Result<(), rusqlite::Error> {
+pub fn insert_group(conn: &Connection, id: &str, name: &str, icon: Option<&str>, sort_order: i32, user_id: &str) -> Result<(), rusqlite::Error> {
     conn.execute(
-        "INSERT INTO category_groups (id, user_id, name, sort_order) VALUES (?1, ?2, ?3, ?4)",
-        params![id, user_id, name, sort_order],
+        "INSERT INTO category_groups (id, user_id, name, icon, sort_order) VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![id, user_id, name, icon, sort_order],
     )?;
     Ok(())
 }
 
-pub fn update_group(conn: &Connection, id: &str, user_id: &str, name: Option<&str>, sort_order: Option<i32>) -> Result<bool, rusqlite::Error> {
+pub fn update_group(conn: &Connection, id: &str, user_id: &str, name: Option<&str>, icon: Option<&str>, sort_order: Option<i32>) -> Result<bool, rusqlite::Error> {
     let mut sets = Vec::new();
     let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
 
     if let Some(n) = name {
         sets.push("name = ?");
         values.push(Box::new(n.to_string()));
+    }
+    if let Some(i) = icon {
+        sets.push("icon = ?");
+        let v: Option<String> = if i.is_empty() { None } else { Some(i.to_string()) };
+        values.push(Box::new(v));
     }
     if let Some(s) = sort_order {
         sets.push("sort_order = ?");
@@ -111,18 +119,19 @@ pub fn delete_group(conn: &Connection, id: &str, user_id: &str) -> Result<bool, 
 
 pub fn get_category(conn: &Connection, id: &str) -> Result<Option<Category>, rusqlite::Error> {
     conn.query_row(
-        "SELECT id, group_id, name, sort_order, target_type, target_amount, target_date FROM categories WHERE id = ?1",
+        "SELECT id, group_id, name, icon, sort_order, target_type, target_amount, target_date FROM categories WHERE id = ?1",
         params![id],
         |row| {
-            let tt: Option<String> = row.get(4)?;
+            let tt: Option<String> = row.get(5)?;
             Ok(Category {
                 id: row.get(0)?,
                 group_id: row.get(1)?,
                 name: row.get(2)?,
-                sort_order: row.get(3)?,
+                icon: row.get(3)?,
+                sort_order: row.get(4)?,
                 target_type: tt.and_then(|s| TargetType::from_str(&s)),
-                target_amount: row.get(5)?,
-                target_date: row.get(6)?,
+                target_amount: row.get(6)?,
+                target_date: row.get(7)?,
             })
         },
     ).optional()
@@ -130,10 +139,10 @@ pub fn get_category(conn: &Connection, id: &str) -> Result<Option<Category>, rus
 
 pub fn insert_category(conn: &Connection, cat: &Category) -> Result<(), rusqlite::Error> {
     conn.execute(
-        "INSERT INTO categories (id, group_id, name, sort_order, target_type, target_amount, target_date)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        "INSERT INTO categories (id, group_id, name, icon, sort_order, target_type, target_amount, target_date)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
         params![
-            cat.id, cat.group_id, cat.name, cat.sort_order,
+            cat.id, cat.group_id, cat.name, cat.icon, cat.sort_order,
             cat.target_type.as_ref().map(|t| t.as_str()),
             cat.target_amount, cat.target_date
         ],
@@ -141,13 +150,18 @@ pub fn insert_category(conn: &Connection, cat: &Category) -> Result<(), rusqlite
     Ok(())
 }
 
-pub fn update_category(conn: &Connection, id: &str, name: Option<&str>, group_id: Option<&str>, sort_order: Option<i32>, target_type: Option<&TargetType>, target_amount: Option<i64>, target_date: Option<&str>) -> Result<bool, rusqlite::Error> {
+pub fn update_category(conn: &Connection, id: &str, name: Option<&str>, icon: Option<&str>, group_id: Option<&str>, sort_order: Option<i32>, target_type: Option<&TargetType>, target_amount: Option<i64>, target_date: Option<&str>) -> Result<bool, rusqlite::Error> {
     let mut sets = Vec::new();
     let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
 
     if let Some(n) = name {
         sets.push("name = ?");
         values.push(Box::new(n.to_string()));
+    }
+    if let Some(i) = icon {
+        sets.push("icon = ?");
+        let v: Option<String> = if i.is_empty() { None } else { Some(i.to_string()) };
+        values.push(Box::new(v));
     }
     if let Some(g) = group_id {
         sets.push("group_id = ?");

@@ -1,9 +1,12 @@
 import { createSignal, createMemo, For, Show, onMount, onCleanup, type Component } from 'solid-js'
+import { EntityIcon } from './IconPicker'
+import { getInitial, getInitialColor } from '~/lib/icons'
 
 export interface EntityPickerItem {
   id: string
   label: string
   meta?: string
+  icon?: string | null
 }
 
 export interface EntityPickerSection {
@@ -32,6 +35,7 @@ interface FlatItem {
   label: string
   sectionKey: string
   meta?: string
+  icon?: string | null
 }
 
 const EntityPicker: Component<EntityPickerProps> = (props) => {
@@ -52,7 +56,7 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
         : section.items
 
       for (const item of filtered) {
-        result.push({ type: 'item', id: item.id, label: item.label, sectionKey: section.key, meta: item.meta })
+        result.push({ type: 'item', id: item.id, label: item.label, sectionKey: section.key, meta: item.meta, icon: item.icon })
       }
 
       if (section.allowCreate && q && !filtered.some(i => i.label.toLowerCase() === q)) {
@@ -228,6 +232,9 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
                       onMouseEnter={() => setActiveIndex(idx())}
                       onClick={(e) => { e.stopPropagation(); handlePick(item) }}
                     >
+                      <Show when={item.type === 'item' && item.icon !== undefined}>
+                        <EntityIcon icon={item.icon ?? null} name={item.label} size={16} />
+                      </Show>
                       <span class="entity-picker__label">{item.label}</span>
                       <Show when={item.meta}>
                         <span class="entity-picker__meta">{item.meta}</span>

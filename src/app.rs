@@ -1,6 +1,7 @@
 use axum::{routing::{get, post, patch, delete}, Router, Json, middleware};
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
+use tower_http::services::{ServeDir, ServeFile};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -106,9 +107,13 @@ pub fn build_router(pool: DbPool) -> Router {
         .route("/api/schedules/generate", post(handlers::schedules::generate))
         .route_layer(middleware::from_fn_with_state(state.clone(), require_auth));
 
+    let static_dir = std::env::var("STATIC_DIR").unwrap_or_else(|_| "./frontend/dist".to_string());
+    let serve_spa = ServeDir::new(&static_dir)
+        .not_found_service(ServeFile::new(format!("{}/index.html", static_dir)));
+
     public
         .merge(protected)
-        .layer(CorsLayer::permissive())
+        .fallback_service(serve_spa)
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

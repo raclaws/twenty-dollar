@@ -1,7 +1,10 @@
 import { createSignal, Show, type Component } from 'solid-js'
+import { Repeat } from 'lucide-solid'
 import MoneyDisplay from '~/components/MoneyDisplay'
+import { EntityIcon } from '~/components/IconPicker'
 import { PayeePicker, CategoryPicker } from '~/components/Pickers'
 import { DatePicker, MemoCell, AmountInput } from '~/components/CellInputs'
+import { getInitial, getInitialColor } from '~/lib/icons'
 import { useStore } from '~/App'
 import { createQuery } from '~/lib/solid-binding'
 import { apiPatch } from '~/lib/api'
@@ -52,6 +55,13 @@ const TransactionRow: Component<TransactionRowProps> = (props) => {
     if (!catId) return ''
     const cat = categories().find(c => c.id === catId)
     return cat ? cat.name as string : ''
+  }
+
+  const categoryIcon = () => {
+    const catId = props.tx.category_id as string | null
+    if (!catId) return null
+    const cat = categories().find(c => c.id === catId)
+    return cat ? (cat.icon as string) ?? null : null
   }
 
   const accountName = () => {
@@ -233,7 +243,12 @@ const TransactionRow: Component<TransactionRowProps> = (props) => {
 
       {/* Date cell */}
       <div class="txn-row__date cell--text" onClick={(e) => startCell('date', e)} style={{ position: 'relative' }}>
-        <Show when={activeCell() === 'date' && isActive()} fallback={<span>{props.tx.date as string}</span>}>
+        <Show when={activeCell() === 'date' && isActive()} fallback={
+          <span class="txn-row__date-display">
+            <span>{props.tx.date as string}</span>
+            <Show when={props.tx.schedule_id}><span class="txn-row__schedule-badge" title="Recurring"><Repeat size={11} /></span></Show>
+          </span>
+        }>
           <DatePicker
             value={props.tx.date as string}
             onCommit={(v) => { if (v !== (props.tx.date as string)) commitField('date', v); endCell() }}
@@ -249,7 +264,14 @@ const TransactionRow: Component<TransactionRowProps> = (props) => {
 
       {/* Payee cell */}
       <div class="txn-row__payee cell--select" onClick={(e) => startCell('payee', e)}>
-        <Show when={activeCell() === 'payee' && isActive()} fallback={<span>{payeeName()}</span>}>
+        <Show when={activeCell() === 'payee' && isActive()} fallback={
+          <span class="txn-row__payee-display">
+            <Show when={payeeName()}>
+              <span class="payee-initial" style={{ 'background-color': getInitialColor(payeeName()) }}>{getInitial(payeeName())}</span>
+            </Show>
+            <span>{payeeName()}</span>
+          </span>
+        }>
           <PayeePicker
             value={props.tx.payee_id as string ?? ''}
             knownPayees={props.knownPayees}
@@ -265,7 +287,14 @@ const TransactionRow: Component<TransactionRowProps> = (props) => {
       <Show when={!props.hideCategory}>
       <Show when={isTransfer()} fallback={
         <div class="txn-row__category cell--select" onClick={(e) => startCell('category', e)}>
-          <Show when={activeCell() === 'category' && isActive()} fallback={<span>{categoryName()}</span>}>
+          <Show when={activeCell() === 'category' && isActive()} fallback={
+            <span class="txn-row__category-display">
+              <Show when={categoryName()}>
+                <EntityIcon icon={categoryIcon()} name={categoryName()} size={14} />
+              </Show>
+              <span>{categoryName()}</span>
+            </span>
+          }>
             <CategoryPicker
               value={(props.tx.category_id as string) ?? ''}
               groups={categoryGroups()}

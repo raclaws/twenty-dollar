@@ -194,6 +194,7 @@
 .sidebar__account {
   display: flex;
   align-items: center;
+  gap: var(--sp-2);
   padding: var(--sp-1) var(--sp-2);
   border-radius: var(--r-sm);
   text-decoration: none;
@@ -202,6 +203,13 @@
 
 .sidebar__account:hover {
   background: var(--c-surface0);
+}
+
+.sidebar__account-icon {
+  display: flex;
+  align-items: center;
+  color: var(--c-overlay0);
+  flex-shrink: 0;
 }
 
 .sidebar__account-name {

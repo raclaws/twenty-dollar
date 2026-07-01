@@ -1,6 +1,7 @@
 import { createSignal, createContext, useContext, createMemo, createEffect, onMount, Show, For, type ParentComponent, type Accessor } from 'solid-js'
 import { A, useLocation, useNavigate } from '@solidjs/router'
 import { LayoutGrid, ArrowLeftRight, CreditCard, Settings, Wallet, AlertTriangle, TrendingDown, AlertCircle, CircleDot } from 'lucide-solid'
+import { ACCOUNT_TYPE_ICONS } from './lib/icons'
 import type { AppStore } from './lib/store'
 import { initStore } from './lib/store'
 import { createQuery } from './lib/solid-binding'
@@ -274,8 +275,10 @@ function Sidebar() {
         <For each={accounts().filter(a => !(a.deleted_at as string))}>
           {(account) => {
             const balance = () => accountBalances().get(account.id as string) ?? 0
+            const TypeIcon = () => ACCOUNT_TYPE_ICONS[(account.type as string) ?? 'checking'] ?? CreditCard
             return (
               <A href={`/transactions?account=${account.id}`} class="sidebar__account">
+                <span class="sidebar__account-icon"><TypeIcon size={14} /></span>
                 <span class="sidebar__account-name">{account.name as string}</span>
                 <span class={`sidebar__account-balance ${balance() >= 0 ? 'money--positive' : 'money--negative'}`}>
                   {formatMoneyUnsigned(Math.abs(balance()))}

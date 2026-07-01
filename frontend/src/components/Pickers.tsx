@@ -20,10 +20,10 @@ export function PayeePicker(props: PayeePickerProps) {
   const payees = createQuery(reactive, 'payees')
 
   const sections = (): EntityPickerSection[] => {
-    const payeeItems = props.knownPayees.map(p => ({ id: p.id, label: p.name }))
+    const payeeItems = props.knownPayees.map(p => ({ id: p.id, label: p.name, icon: null as string | null }))
     const accountItems = props.accounts.map(a => {
       const accountPayee = payees().find(p => (p.account_id as string) === (a.id as string))
-      return { id: accountPayee?.id as string ?? '', label: a.name as string, meta: a.type as string }
+      return { id: accountPayee?.id as string ?? '', label: a.name as string, meta: a.type as string, icon: null as string | null }
     }).filter(item => item.id)
 
     return [
@@ -75,7 +75,7 @@ export function CategoryPicker(props: CategoryPickerProps) {
     for (const group of props.groups) {
       const groupCats = props.categories
         .filter(c => c.group_id === group.id && !(c.deleted_at as string))
-        .map(c => ({ id: c.id as string, label: c.name as string }))
+        .map(c => ({ id: c.id as string, label: c.name as string, icon: (c.icon as string) ?? null }))
       result.push({
         key: group.id as string,
         label: group.name as string,

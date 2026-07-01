@@ -17,6 +17,7 @@ import './styles/entity-picker.css'
 import './styles/datepicker.css'
 import './styles/settings.css'
 import './styles/auth.css'
+import './styles/icon-picker.css'
 
 render(
   () => (

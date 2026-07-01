@@ -12,9 +12,9 @@ pub fn list_categories(conn: &Connection, user_id: &str) -> AppResult<Vec<Catego
 pub fn create_group(conn: &Connection, user_id: &str, input: CreateCategoryGroup) -> AppResult<CategoryGroup> {
     let id = uuid::Uuid::new_v4().to_string();
     let sort_order = input.sort_order.unwrap_or(0);
-    db::categories::insert_group(conn, &id, &input.name, sort_order, user_id)?;
+    db::categories::insert_group(conn, &id, &input.name, input.icon.as_deref(), sort_order, user_id)?;
 
-    let group = CategoryGroup { id: id.clone(), name: input.name, sort_order, categories: Vec::new() };
+    let group = CategoryGroup { id: id.clone(), name: input.name, icon: input.icon, sort_order, categories: Vec::new() };
 
     record_undo(conn, &format!("Create group '{}'", group.name), vec![
         Mutation::Insert { table: "category_groups".into(), data: serde_json::json!({"id": id, "name": &group.name, "sort_order": sort_order}) }
@@ -29,7 +29,7 @@ pub fn update_group(conn: &Connection, user_id: &str, id: &str, input: UpdateCat
     let existing = db::categories::get_group(conn, id, user_id)?
         .ok_or_else(|| AppError::NotFound(format!("Group {}", id)))?;
 
-    db::categories::update_group(conn, id, user_id, input.name.as_deref(), input.sort_order)?;
+    db::categories::update_group(conn, id, user_id, input.name.as_deref(), input.icon.as_deref(), input.sort_order)?;
     let updated = db::categories::get_group(conn, id, user_id)?.unwrap();
 
     let prev = serde_json::json!({"name": existing.name, "sort_order": existing.sort_order});
@@ -65,6 +65,7 @@ pub fn create_category(conn: &Connection, _user_id: &str, input: CreateCategory)
         id: id.clone(),
         group_id: input.group_id,
         name: input.name,
+        icon: input.icon,
         sort_order: input.sort_order.unwrap_or(0),
         target_type: input.target_type,
         target_amount: input.target_amount,
@@ -88,6 +89,7 @@ pub fn update_category(conn: &Connection, _user_id: &str, id: &str, input: Updat
     db::categories::update_category(
         conn, id,
         input.name.as_deref(),
+        input.icon.as_deref(),
         input.group_id.as_deref(),
         input.sort_order,
         input.target_type.as_ref(),

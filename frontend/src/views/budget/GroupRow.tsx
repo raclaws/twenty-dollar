@@ -3,6 +3,10 @@ import { ChevronRight, ChevronDown, Plus, AlertTriangle, TrendingDown } from 'lu
 import MoneyDisplay from '~/components/MoneyDisplay'
 import HealthRing from '~/components/HealthRing'
 import InlineForm from '~/components/InlineForm'
+import IconPicker, { EntityIcon } from '~/components/IconPicker'
+import { useStore } from '~/App'
+import { apiPatch } from '~/lib/api'
+import { pushUndo } from '~/lib/undo'
 import CategoryRow from './CategoryRow'
 import type { BudgetGroup } from '~/lib/budget-engine'
 import type { Accessor } from 'solid-js'
@@ -34,9 +38,11 @@ interface GroupRowProps {
 }
 
 const GroupRow: Component<GroupRowProps> = (props) => {
+  const { raw, reactive } = useStore()
   const otherGroups = () => props.categoryGroups.filter(g => g.id !== props.group.groupId)
   const [collapsed, setCollapsed] = createSignal(false)
   const [ctxMenu, setCtxMenu] = createSignal<{ x: number; y: number } | null>(null)
+  const [iconPickerOpen, setIconPickerOpen] = createSignal(false)
   let headerRef: HTMLDivElement | undefined
   let ctxMenuRef: HTMLDivElement | undefined
 
@@ -76,6 +82,23 @@ const GroupRow: Component<GroupRowProps> = (props) => {
     setCtxMenu({ x: e.clientX, y: e.clientY })
   }
 
+  async function commitGroupIcon(newIcon: string | null) {
+    const groupId = props.group.groupId
+    const group = await raw.get('category_groups', groupId)
+    if (!group) return
+    const oldIcon = (group.icon as string) ?? null
+    if (newIcon === oldIcon) return
+    const updated = { ...group, icon: newIcon }
+    await raw.put('category_groups', updated)
+    reactive.notify('category_groups')
+    apiPatch(`/api/category_groups/${groupId}`, { icon: newIcon }).catch(() => {})
+    pushUndo({
+      description: `Changed icon for group ${props.group.groupName}`,
+      async undo() { await raw.put('category_groups', group); reactive.notify('category_groups') },
+      async redo() { await raw.put('category_groups', updated); reactive.notify('category_groups') },
+    })
+  }
+
   return (
     <div class="budget-group">
       <Show when={!props.isEditing} fallback={
@@ -89,11 +112,22 @@ const GroupRow: Component<GroupRowProps> = (props) => {
         </div>
       }>
         <div ref={headerRef} class="budget-group__header" onContextMenu={handleContextMenu}>
-          <div class="budget-group__name">
+          <div class="budget-group__name" style={{ position: 'relative' }}>
             <span class="budget-group__chevron" onClick={(e) => { e.stopPropagation(); setCollapsed(!collapsed()) }}>
               {collapsed() ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
             </span>
+            <span class="budget-row__icon" onClick={(e) => { e.stopPropagation(); setIconPickerOpen(!iconPickerOpen()) }} title="Change icon">
+              <EntityIcon icon={props.group.groupIcon} name={props.group.groupName} size={14} />
+            </span>
             {props.group.groupName}
+            <Show when={iconPickerOpen()}>
+              <IconPicker
+                value={props.group.groupIcon}
+                entityName={props.group.groupName}
+                onPick={(iconId) => { commitGroupIcon(iconId); setIconPickerOpen(false) }}
+                onCancel={() => setIconPickerOpen(false)}
+              />
+            </Show>
             <div class="budget-group__more" onClick={(e) => { e.stopPropagation(); props.onAddCategory() }}>
               <span class="budget-group__more-icon"><Plus size={14} /></span>
             </div>
@@ -172,6 +206,7 @@ const GroupRow: Component<GroupRowProps> = (props) => {
         {(menu) => (
           <div ref={ctxMenuRef} class="ctx-menu" style={{ position: 'fixed', left: `${menu().x}px`, top: `${menu().y}px`, 'z-index': 200 }} onClick={(e) => e.stopPropagation()}>
             <div class="ctx-menu__item" onClick={() => { setCtxMenu(null); props.onAddCategory() }}>Add category</div>
+            <div class="ctx-menu__item" onClick={() => { setCtxMenu(null); setIconPickerOpen(true) }}>Change icon...</div>
             <div class="ctx-menu__sep" />
             <div class="ctx-menu__item" onClick={() => { setCtxMenu(null); props.onRename() }}>Rename</div>
             <div class="ctx-menu__item ctx-menu__item--danger" onClick={() => { setCtxMenu(null); props.onDelete() }}>Delete</div>

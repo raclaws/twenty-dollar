@@ -2,7 +2,7 @@ import type { StoreConfig, SyncStore, Record, QueryOptions } from './types'
 
 export function createSyncStore(config: StoreConfig): Promise<SyncStore> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(config.name, 3)
+    const request = indexedDB.open(config.name, 4)
 
     request.onupgradeneeded = () => {
       const db = request.result

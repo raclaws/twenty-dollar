@@ -34,6 +34,7 @@ impl TargetType {
 pub struct CategoryGroup {
     pub id: String,
     pub name: String,
+    pub icon: Option<String>,
     pub sort_order: i32,
     #[serde(default)]
     pub categories: Vec<Category>,
@@ -44,6 +45,7 @@ pub struct Category {
     pub id: String,
     pub group_id: String,
     pub name: String,
+    pub icon: Option<String>,
     pub sort_order: i32,
     pub target_type: Option<TargetType>,
     pub target_amount: Option<i64>,
@@ -53,12 +55,14 @@ pub struct Category {
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateCategoryGroup {
     pub name: String,
+    pub icon: Option<String>,
     pub sort_order: Option<i32>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct UpdateCategoryGroup {
     pub name: Option<String>,
+    pub icon: Option<String>,
     pub sort_order: Option<i32>,
 }
 
@@ -66,6 +70,7 @@ pub struct UpdateCategoryGroup {
 pub struct CreateCategory {
     pub group_id: String,
     pub name: String,
+    pub icon: Option<String>,
     pub sort_order: Option<i32>,
     pub target_type: Option<TargetType>,
     pub target_amount: Option<i64>,
@@ -75,6 +80,7 @@ pub struct CreateCategory {
 #[derive(Debug, Clone, Deserialize)]
 pub struct UpdateCategory {
     pub name: Option<String>,
+    pub icon: Option<String>,
     pub group_id: Option<String>,
     pub sort_order: Option<i32>,
     pub target_type: Option<TargetType>,

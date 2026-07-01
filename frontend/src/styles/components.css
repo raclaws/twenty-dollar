@@ -300,17 +300,21 @@
   cursor: pointer;
   border-bottom: 1px dashed transparent;
   transition: border-color var(--dur-fast) var(--ease);
+  display: flex;
+  align-items: center;
 }
 
 .cell--select::after {
   content: '▾';
-  margin-left: var(--sp-1);
-  font-size: var(--fs-md);
+  margin-left: 4px;
+  font-size: 11px;
   color: var(--c-overlay0);
+  flex-shrink: 0;
 }
 
 /* Hide chevron when select input is active inside the cell */
-.cell--select:has(select)::after {
+.cell--select:has(select)::after,
+.cell--select:has(.entity-picker)::after {
   display: none;
 }
 

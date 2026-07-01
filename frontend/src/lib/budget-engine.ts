@@ -13,6 +13,7 @@ export interface TargetStatus {
 export interface CategoryBudget {
   categoryId: string
   categoryName: string
+  categoryIcon: string | null
   groupId: string
   assigned: number
   activity: number
@@ -23,6 +24,7 @@ export interface CategoryBudget {
 export interface BudgetGroup {
   groupId: string
   groupName: string
+  groupIcon: string | null
   categories: CategoryBudget[]
 }
 
@@ -83,6 +85,7 @@ export function computeBudget(
         const budget: CategoryBudget = {
           categoryId: id,
           categoryName: cat.name as string,
+          categoryIcon: (cat.icon as string) ?? null,
           groupId: group.id as string,
           assigned,
           activity,
@@ -96,6 +99,7 @@ export function computeBudget(
       return {
         groupId: group.id as string,
         groupName: group.name as string,
+        groupIcon: (group.icon as string) ?? null,
         categories: catBudgets,
       }
     })

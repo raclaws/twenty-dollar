@@ -12,7 +12,7 @@ const STORE_CONFIG = {
   name: 'twenty-dollar',
   tables: {
     accounts: {
-      fields: { name: 'string', type: 'string', sort_order: 'number', created_at: 'string', deleted_at: 'string' } as const,
+      fields: { name: 'string', type: 'string', icon: 'string', sort_order: 'number', created_at: 'string', deleted_at: 'string' } as const,
       indexes: ['type'],
     },
     payees: {
@@ -20,11 +20,11 @@ const STORE_CONFIG = {
       indexes: ['type', 'account_id'],
     },
     category_groups: {
-      fields: { name: 'string', sort_order: 'number' } as const,
+      fields: { name: 'string', icon: 'string', sort_order: 'number' } as const,
       indexes: ['sort_order'],
     },
     categories: {
-      fields: { group_id: 'string', name: 'string', sort_order: 'number', target_type: 'string', target_amount: 'number', target_date: 'string' } as const,
+      fields: { group_id: 'string', name: 'string', icon: 'string', sort_order: 'number', target_type: 'string', target_amount: 'number', target_date: 'string' } as const,
       indexes: ['group_id'],
     },
     transactions: {
@@ -119,41 +119,41 @@ async function seedDemoData(raw: SyncStore, reactive: ReactiveStore) {
   }
 
   // --- Category Groups & Categories ---
-  const groups: { name: string; categories: { name: string; target: number }[] }[] = [
-    { name: 'Housing', categories: [
-      { name: 'Rent/Mortgage', target: 1500000 },
-      { name: 'Electricity', target: 150000 },
-      { name: 'Water', target: 50000 },
-      { name: 'Internet', target: 80000 },
+  const groups: { name: string; icon: string; categories: { name: string; icon: string; target: number }[] }[] = [
+    { name: 'Housing', icon: 'home', categories: [
+      { name: 'Rent/Mortgage', icon: 'key', target: 1500000 },
+      { name: 'Electricity', icon: 'zap', target: 150000 },
+      { name: 'Water', icon: 'droplets', target: 50000 },
+      { name: 'Internet', icon: 'wifi', target: 80000 },
     ]},
-    { name: 'Transportation', categories: [
-      { name: 'Gas', target: 200000 },
-      { name: 'Car Insurance', target: 120000 },
-      { name: 'Ride Share', target: 100000 },
+    { name: 'Transportation', icon: 'car', categories: [
+      { name: 'Gas', icon: 'fuel', target: 200000 },
+      { name: 'Car Insurance', icon: 'shield', target: 120000 },
+      { name: 'Ride Share', icon: 'car', target: 100000 },
     ]},
-    { name: 'Food', categories: [
-      { name: 'Groceries', target: 600000 },
-      { name: 'Dining Out', target: 300000 },
-      { name: 'Coffee', target: 80000 },
+    { name: 'Food', icon: 'utensils-crossed', categories: [
+      { name: 'Groceries', icon: 'shopping-cart', target: 600000 },
+      { name: 'Dining Out', icon: 'utensils-crossed', target: 300000 },
+      { name: 'Coffee', icon: 'coffee', target: 80000 },
     ]},
-    { name: 'Subscriptions', categories: [
-      { name: 'Streaming', target: 30000 },
-      { name: 'Music', target: 15000 },
-      { name: 'Gym', target: 50000 },
+    { name: 'Subscriptions', icon: 'tv', categories: [
+      { name: 'Streaming', icon: 'tv', target: 30000 },
+      { name: 'Music', icon: 'music', target: 15000 },
+      { name: 'Gym', icon: 'dumbbell', target: 50000 },
     ]},
-    { name: 'Health', categories: [
-      { name: 'Insurance', target: 250000 },
-      { name: 'Doctor/Pharmacy', target: 100000 },
+    { name: 'Health', icon: 'heart', categories: [
+      { name: 'Insurance', icon: 'shield', target: 250000 },
+      { name: 'Doctor/Pharmacy', icon: 'pill', target: 100000 },
     ]},
-    { name: 'Personal', categories: [
-      { name: 'Clothing', target: 150000 },
-      { name: 'Phone', target: 60000 },
-      { name: 'Shopping', target: 200000 },
-      { name: 'Pet Care', target: 80000 },
+    { name: 'Personal', icon: 'shopping-bag', categories: [
+      { name: 'Clothing', icon: 'shirt', target: 150000 },
+      { name: 'Phone', icon: 'phone', target: 60000 },
+      { name: 'Shopping', icon: 'shopping-bag', target: 200000 },
+      { name: 'Pet Care', icon: 'heart', target: 80000 },
     ]},
-    { name: 'Savings Goals', categories: [
-      { name: 'Emergency Fund', target: 500000 },
-      { name: 'Vacation', target: 300000 },
+    { name: 'Savings Goals', icon: 'piggy-bank', categories: [
+      { name: 'Emergency Fund', icon: 'piggy-bank', target: 500000 },
+      { name: 'Vacation', icon: 'plane', target: 300000 },
     ]},
   ]
 
@@ -161,12 +161,12 @@ async function seedDemoData(raw: SyncStore, reactive: ReactiveStore) {
   let groupIdx = 0
   for (const g of groups) {
     const groupId = uuid()
-    await raw.put('category_groups', { id: groupId, name: g.name, sort_order: groupIdx++ })
+    await raw.put('category_groups', { id: groupId, name: g.name, icon: g.icon, sort_order: groupIdx++ })
     let catIdx = 0
     for (const c of g.categories) {
       const catId = uuid()
       categoryMap[c.name] = catId
-      await raw.put('categories', { id: catId, group_id: groupId, name: c.name, sort_order: catIdx++, target_type: 'monthly', target_amount: c.target, target_date: null })
+      await raw.put('categories', { id: catId, group_id: groupId, name: c.name, icon: c.icon, sort_order: catIdx++, target_type: 'monthly', target_amount: c.target, target_date: null })
     }
   }
 

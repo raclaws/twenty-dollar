@@ -13,6 +13,7 @@ export interface BudgetStore {
 const EMPTY_CATEGORY: CategoryBudget = {
   categoryId: '',
   categoryName: '',
+  categoryIcon: null,
   groupId: '',
   assigned: 0,
   activity: 0,

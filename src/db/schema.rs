@@ -26,6 +26,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             name TEXT NOT NULL,
             type TEXT NOT NULL CHECK(type IN ('checking','savings','cash','credit')),
+            icon TEXT,
             sort_order INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL,
             deleted_at TEXT
@@ -35,6 +36,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             name TEXT NOT NULL,
+            icon TEXT,
             sort_order INTEGER NOT NULL DEFAULT 0
         );
 
@@ -42,6 +44,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             id TEXT PRIMARY KEY,
             group_id TEXT NOT NULL REFERENCES category_groups(id) ON DELETE CASCADE,
             name TEXT NOT NULL,
+            icon TEXT,
             sort_order INTEGER NOT NULL DEFAULT 0,
             target_type TEXT CHECK(target_type IN ('monthly_spending','monthly_contribution','target_balance_by_date','target_balance')),
             target_amount INTEGER,

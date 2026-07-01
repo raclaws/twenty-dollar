@@ -221,8 +221,7 @@
   width: 160px;
   min-width: 160px;
   max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
   white-space: nowrap;
   font-size: var(--fs-lg);
   font-weight: var(--fw-semibold);
@@ -367,9 +366,20 @@
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
   white-space: nowrap;
+}
+
+.budget-row__icon {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px;
+  transition: background var(--dur-fast) var(--ease);
+}
+.budget-row__icon:hover {
+  background: var(--c-surface1);
 }
 
 .budget-row__target {

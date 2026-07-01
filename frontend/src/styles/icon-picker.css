@@ -1,0 +1,109 @@
+/* Icon Picker */
+.icon-picker {
+  position: absolute;
+  z-index: 300;
+  top: 100%;
+  left: 0;
+  width: 320px;
+  max-height: 360px;
+  overflow-y: auto;
+  background: var(--c-surface0);
+  border: 1px solid var(--c-surface1);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 8px;
+}
+
+.icon-picker__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 4px 8px;
+  border-bottom: 1px solid var(--c-surface1);
+  margin-bottom: 8px;
+}
+
+.icon-picker__title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-subtext0);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.icon-picker__clear {
+  background: none;
+  border: none;
+  color: var(--c-overlay0);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+.icon-picker__clear:hover {
+  background: var(--c-surface1);
+  color: var(--c-text);
+}
+
+.icon-picker__group-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--c-overlay0);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 6px 4px 4px;
+}
+
+.icon-picker__group-icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding-bottom: 4px;
+}
+
+.icon-picker__item {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  color: var(--c-subtext1);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.icon-picker__item:hover {
+  background: var(--c-surface1);
+  color: var(--c-text);
+}
+.icon-picker__item--selected {
+  background: var(--c-blue);
+  color: var(--c-base);
+}
+.icon-picker__item--selected:hover {
+  background: var(--c-blue);
+  color: var(--c-base);
+}
+
+/* Entity Icon (shared inline icon / initial display) */
+.entity-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.entity-icon--initial {
+  border-radius: 50%;
+  color: var(--c-base);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.entity-icon--lucide {
+  color: var(--c-subtext1);
+}

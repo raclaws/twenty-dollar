@@ -1,6 +1,7 @@
 import { createSignal, createMemo, onMount, onCleanup, For, Show, type Component } from 'solid-js'
 import { useNavigate } from '@solidjs/router'
 import { Plus, CreditCard } from 'lucide-solid'
+import { ACCOUNT_TYPE_ICONS } from '~/lib/icons'
 import { useStore } from '~/App'
 import { createQuery } from '~/lib/solid-binding'
 import { formatMoneyUnsigned } from '~/lib/format'
@@ -268,7 +269,12 @@ const AccountsView: Component = () => {
                   >
                     {/* Name cell — editable */}
                     <div class="accounts-table__col accounts-table__col--name cell--text" onClick={(e) => startCell(account.id as string, 'name', e)}>
-                      <Show when={isEditing() && activeCell() === 'name'} fallback={<span>{account.name as string}</span>}>
+                      <Show when={isEditing() && activeCell() === 'name'} fallback={
+                        <span class="accounts-table__name-content">
+                          <span class="accounts-table__type-icon">{(() => { const I = ACCOUNT_TYPE_ICONS[(account.type as string) ?? 'checking'] ?? CreditCard; return <I size={14} /> })()}</span>
+                          {account.name as string}
+                        </span>
+                      }>
                         <input
                           class="txn-cell-input"
                           type="text"
