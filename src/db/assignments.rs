@@ -40,6 +40,23 @@ pub fn assigned_for_month_batch(conn: &Connection, month: &str) -> Result<Vec<(S
     Ok(results)
 }
 
+pub fn list_all_assignments(conn: &Connection, user_id: &str) -> Result<Vec<(String, String, String, i64)>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        "SELECT a.id, a.category_id, a.month, a.amount FROM assignments a
+         INNER JOIN categories c ON c.id = a.category_id
+         INNER JOIN category_groups g ON g.id = c.group_id
+         WHERE g.user_id = ?1"
+    )?;
+    let rows = stmt.query_map(params![user_id], |row| {
+        Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+    })?;
+    let mut results = Vec::new();
+    for row in rows {
+        results.push(row?);
+    }
+    Ok(results)
+}
+
 pub fn cumulative_assigned_batch(conn: &Connection, up_to_month: &str) -> Result<Vec<(String, i64)>, rusqlite::Error> {
     let mut stmt = conn.prepare(
         "SELECT category_id, SUM(amount) FROM assignments WHERE month <= ?1 GROUP BY category_id"

@@ -10,7 +10,7 @@ const TABLE_TO_ENDPOINT: Record<string, string> = {
   categories: '/api/categories',
   transactions: '/api/transactions',
   split_entries: '',
-  assignments: '',
+  assignments: '/api/budget/assignments',
   schedules: '/api/schedules',
 }
 
@@ -25,12 +25,21 @@ export function createRestAdapter(_baseUrl: string): SyncAdapter {
       const body = await res.json()
 
       if (table === 'category_groups') {
-        return Array.isArray(body) ? body.map((g: any) => ({ id: g.id, name: g.name, sort_order: g.sort_order ?? 0 })) : []
+        return Array.isArray(body) ? body.map((g: any) => ({ id: g.id, name: g.name, icon: g.icon ?? null, sort_order: g.sort_order ?? 0 })) : []
       }
       if (table === 'categories') {
         if (!Array.isArray(body)) return []
         return body.flatMap((g: any) =>
-          (g.categories ?? []).map((c: any) => ({ ...c, group_id: g.id }))
+          (g.categories ?? []).map((c: any) => ({
+            id: c.id,
+            group_id: c.group_id ?? g.id,
+            name: c.name,
+            icon: c.icon ?? null,
+            sort_order: c.sort_order ?? 0,
+            target_type: c.target_type ?? null,
+            target_amount: c.target_amount ?? null,
+            target_date: c.target_date ?? null,
+          }))
         )
       }
 

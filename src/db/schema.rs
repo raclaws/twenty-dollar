@@ -146,6 +146,11 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         CREATE INDEX IF NOT EXISTS idx_schedules_user ON schedules(user_id);
         CREATE INDEX IF NOT EXISTS idx_schedules_next_due ON schedules(next_due);
         CREATE INDEX IF NOT EXISTS idx_transactions_schedule ON transactions(schedule_id);
+
+        CREATE TABLE IF NOT EXISTS user_preferences (
+            user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            currency TEXT NOT NULL DEFAULT 'USD'
+        );
         "
     )
 }

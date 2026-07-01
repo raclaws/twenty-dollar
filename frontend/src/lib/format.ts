@@ -56,6 +56,21 @@ export function getCurrencyCode(): string {
 
 export function setCurrencyCode(code: string): void {
   localStorage.setItem(CURRENCY_KEY, code)
+  fetch('/api/preferences', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currency: code }),
+  }).catch(() => {})
+}
+
+export async function initCurrency(): Promise<void> {
+  try {
+    const res = await fetch('/api/preferences')
+    if (res.ok) {
+      const data = await res.json()
+      if (data.currency) localStorage.setItem(CURRENCY_KEY, data.currency)
+    }
+  } catch {}
 }
 
 export function formatMoney(cents: number): string {

@@ -148,3 +148,21 @@ pub async fn set_month_lock(
     }).await.map_err(|e| AppError::Internal(e.to_string()))??;
     Ok(Json(serde_json::json!({"ok": true})))
 }
+
+pub async fn list_assignments(
+    State(state): State<AppState>,
+    Extension(user_id): Extension<String>,
+) -> AppResult<Json<Vec<serde_json::Value>>> {
+    let pool = state.db.clone();
+    let result = tokio::task::spawn_blocking(move || -> Result<_, AppError> {
+        let conn = pool.get()?;
+        let rows = crate::db::assignments::list_all_assignments(&conn, &user_id)?;
+        Ok(rows)
+    }).await.map_err(|e| AppError::Internal(e.to_string()))??;
+
+    let json: Vec<serde_json::Value> = result.into_iter().map(|(id, category_id, month, amount)| {
+        serde_json::json!({ "id": id, "category_id": category_id, "month": month, "amount": amount })
+    }).collect();
+
+    Ok(Json(json))
+}

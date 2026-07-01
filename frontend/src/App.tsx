@@ -5,7 +5,7 @@ import { ACCOUNT_TYPE_ICONS } from './lib/icons'
 import type { AppStore } from './lib/store'
 import { initStore } from './lib/store'
 import { createQuery } from './lib/solid-binding'
-import { currentMonth, formatMoneyUnsigned } from './lib/format'
+import { currentMonth, formatMoneyUnsigned, initCurrency } from './lib/format'
 import { createBudgetStore } from './lib/budget-signals'
 import { useSyncStatus } from './components/SyncIndicator'
 import Toast from './components/Toast'
@@ -63,6 +63,7 @@ const App: ParentComponent = (props) => {
       const s = await initStore()
       setStore(s)
       setLoading(false)
+      initCurrency().catch(() => {})
       fetch('/api/schedules/generate', { method: 'POST' }).catch(() => {})
       fetch('/api/auth/me').then(r => {
         if (r.status === 401) {

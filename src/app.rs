@@ -66,6 +66,7 @@ pub fn build_router(pool: DbPool) -> Router {
         .route("/api/budget", get(handlers::budget::get_budget))
         .route("/api/budget/assign", post(handlers::budget::assign))
         .route("/api/budget/move", post(handlers::budget::move_money))
+        .route("/api/budget/assignments", get(handlers::budget::list_assignments))
         .route("/api/months/lock", post(handlers::budget::set_month_lock))
         // Categories
         .route("/api/categories", get(handlers::categories::list))
@@ -107,6 +108,9 @@ pub fn build_router(pool: DbPool) -> Router {
         .route("/api/schedules/generate", post(handlers::schedules::generate))
         // Reset
         .route("/api/reset", post(handlers::reset::reset_data))
+        // Preferences
+        .route("/api/preferences", get(handlers::preferences::get_preferences))
+        .route("/api/preferences", patch(handlers::preferences::update_preferences))
         .route_layer(middleware::from_fn_with_state(state.clone(), require_auth));
 
     let static_dir = std::env::var("STATIC_DIR").unwrap_or_else(|_| "./frontend/dist".to_string());
