@@ -20,12 +20,20 @@ const SettingsView: Component = () => {
       await raw.clear('payees')
       await raw.clear('assignments')
       await raw.clear('schedules')
+
+      // Strip targets from categories (keep category structure)
+      const cats = await raw.getAll('categories')
+      for (const cat of cats) {
+        await raw.put('categories', { ...cat, target_type: null, target_amount: null, target_date: null })
+      }
+
       reactive.notify('transactions')
       reactive.notify('split_entries')
       reactive.notify('accounts')
       reactive.notify('payees')
       reactive.notify('assignments')
       reactive.notify('schedules')
+      reactive.notify('categories')
     } finally {
       setClearing(false)
       setConfirmClear(false)
