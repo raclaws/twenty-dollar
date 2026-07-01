@@ -102,9 +102,11 @@ pub fn import_csv(conn: &Connection, user_id: &str, csv_data: &str, default_acco
             category_id,
             date: row.date,
             payee: row.payee,
+            payee_id: None,
             amount,
             memo: row.memo,
             cleared: false,
+            linked_id: None,
             created_at: now,
             splits: Vec::new(),
         };

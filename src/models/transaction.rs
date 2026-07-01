@@ -7,9 +7,11 @@ pub struct Transaction {
     pub category_id: Option<String>,
     pub date: String,
     pub payee: Option<String>,
+    pub payee_id: Option<String>,
     pub amount: i64,
     pub memo: Option<String>,
     pub cleared: bool,
+    pub linked_id: Option<String>,
     pub created_at: String,
     #[serde(default)]
     pub splits: Vec<SplitEntry>,
@@ -30,9 +32,11 @@ pub struct CreateTransaction {
     pub category_id: Option<String>,
     pub date: String,
     pub payee: Option<String>,
+    pub payee_id: Option<String>,
     pub amount: i64,
     pub memo: Option<String>,
     pub cleared: Option<bool>,
+    pub linked_id: Option<String>,
     #[serde(default)]
     pub splits: Vec<CreateSplitEntry>,
 }
@@ -50,9 +54,11 @@ pub struct UpdateTransaction {
     pub category_id: Option<String>,
     pub date: Option<String>,
     pub payee: Option<String>,
+    pub payee_id: Option<String>,
     pub amount: Option<i64>,
     pub memo: Option<String>,
     pub cleared: Option<bool>,
+    pub linked_id: Option<String>,
     pub splits: Option<Vec<CreateSplitEntry>>,
 }
 

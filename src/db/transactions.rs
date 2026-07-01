@@ -3,7 +3,7 @@ use crate::models::transaction::{Transaction, SplitEntry};
 
 pub fn list_transactions(conn: &Connection, account_id: Option<&str>, from: Option<&str>, to: Option<&str>, category_id: Option<&str>) -> Result<Vec<Transaction>, rusqlite::Error> {
     let mut sql = String::from(
-        "SELECT id, account_id, category_id, date, payee, amount, memo, cleared, created_at FROM transactions WHERE 1=1"
+        "SELECT id, account_id, category_id, date, payee, payee_id, amount, memo, cleared, linked_id, created_at FROM transactions WHERE 1=1"
     );
     let mut param_values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
 
@@ -36,10 +36,12 @@ pub fn list_transactions(conn: &Connection, account_id: Option<&str>, from: Opti
             category_id: row.get(2)?,
             date: row.get(3)?,
             payee: row.get(4)?,
-            amount: row.get(5)?,
-            memo: row.get(6)?,
-            cleared: row.get::<_, i32>(7)? != 0,
-            created_at: row.get(8)?,
+            payee_id: row.get(5)?,
+            amount: row.get(6)?,
+            memo: row.get(7)?,
+            cleared: row.get::<_, i32>(8)? != 0,
+            linked_id: row.get(9)?,
+            created_at: row.get(10)?,
             splits: Vec::new(),
         })
     })?;
@@ -56,7 +58,7 @@ pub fn list_transactions(conn: &Connection, account_id: Option<&str>, from: Opti
 
 pub fn get_transaction(conn: &Connection, id: &str) -> Result<Option<Transaction>, rusqlite::Error> {
     let txn = conn.query_row(
-        "SELECT id, account_id, category_id, date, payee, amount, memo, cleared, created_at FROM transactions WHERE id = ?1",
+        "SELECT id, account_id, category_id, date, payee, payee_id, amount, memo, cleared, linked_id, created_at FROM transactions WHERE id = ?1",
         params![id],
         |row| Ok(Transaction {
             id: row.get(0)?,
@@ -64,10 +66,12 @@ pub fn get_transaction(conn: &Connection, id: &str) -> Result<Option<Transaction
             category_id: row.get(2)?,
             date: row.get(3)?,
             payee: row.get(4)?,
-            amount: row.get(5)?,
-            memo: row.get(6)?,
-            cleared: row.get::<_, i32>(7)? != 0,
-            created_at: row.get(8)?,
+            payee_id: row.get(5)?,
+            amount: row.get(6)?,
+            memo: row.get(7)?,
+            cleared: row.get::<_, i32>(8)? != 0,
+            linked_id: row.get(9)?,
+            created_at: row.get(10)?,
             splits: Vec::new(),
         }),
     ).optional()?;
@@ -82,11 +86,11 @@ pub fn get_transaction(conn: &Connection, id: &str) -> Result<Option<Transaction
 
 pub fn insert_transaction(conn: &Connection, txn: &Transaction) -> Result<(), rusqlite::Error> {
     conn.execute(
-        "INSERT INTO transactions (id, account_id, category_id, date, payee, amount, memo, cleared, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        "INSERT INTO transactions (id, account_id, category_id, date, payee, payee_id, amount, memo, cleared, linked_id, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
         params![
             txn.id, txn.account_id, txn.category_id, txn.date,
-            txn.payee, txn.amount, txn.memo, txn.cleared as i32, txn.created_at
+            txn.payee, txn.payee_id, txn.amount, txn.memo, txn.cleared as i32, txn.linked_id, txn.created_at
         ],
     )?;
     for split in &txn.splits {
@@ -95,7 +99,7 @@ pub fn insert_transaction(conn: &Connection, txn: &Transaction) -> Result<(), ru
     Ok(())
 }
 
-pub fn update_transaction_fields(conn: &Connection, id: &str, account_id: Option<&str>, category_id: Option<&str>, date: Option<&str>, payee: Option<&str>, amount: Option<i64>, memo: Option<&str>, cleared: Option<bool>) -> Result<bool, rusqlite::Error> {
+pub fn update_transaction_fields(conn: &Connection, id: &str, account_id: Option<&str>, category_id: Option<&str>, date: Option<&str>, payee: Option<&str>, payee_id: Option<&str>, amount: Option<i64>, memo: Option<&str>, cleared: Option<bool>, linked_id: Option<&str>) -> Result<bool, rusqlite::Error> {
     let mut sets = Vec::new();
     let mut values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
 
@@ -115,6 +119,10 @@ pub fn update_transaction_fields(conn: &Connection, id: &str, account_id: Option
         sets.push("payee = ?");
         values.push(Box::new(v.to_string()));
     }
+    if let Some(v) = payee_id {
+        sets.push("payee_id = ?");
+        values.push(Box::new(v.to_string()));
+    }
     if let Some(v) = amount {
         sets.push("amount = ?");
         values.push(Box::new(v));
@@ -126,6 +134,10 @@ pub fn update_transaction_fields(conn: &Connection, id: &str, account_id: Option
     if let Some(v) = cleared {
         sets.push("cleared = ?");
         values.push(Box::new(v as i32));
+    }
+    if let Some(v) = linked_id {
+        sets.push("linked_id = ?");
+        values.push(Box::new(v.to_string()));
     }
     if sets.is_empty() {
         return Ok(false);

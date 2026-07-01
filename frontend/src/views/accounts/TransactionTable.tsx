@@ -304,7 +304,8 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
     await raw.delete('transactions', id)
     reactive.notify('transactions')
 
-    apiDelete(`/api/transactions/${id}`).catch(async () => {
+    apiDelete(`/api/transactions/${id}`).catch(async (err) => {
+      if (err?.status === 404) return
       await raw.put('transactions', oldRecord)
       if (linkedRecord) await raw.put('transactions', linkedRecord)
       reactive.notify('transactions')

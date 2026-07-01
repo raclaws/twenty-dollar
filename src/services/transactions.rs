@@ -17,9 +17,11 @@ fn txn_to_row_json(txn: &Transaction) -> serde_json::Value {
         "category_id": txn.category_id,
         "date": txn.date,
         "payee": txn.payee,
+        "payee_id": txn.payee_id,
         "amount": txn.amount,
         "memo": txn.memo,
         "cleared": txn.cleared,
+        "linked_id": txn.linked_id,
         "created_at": txn.created_at
     })
 }
@@ -53,9 +55,11 @@ pub fn create_transaction(conn: &Connection, input: CreateTransaction) -> AppRes
         category_id,
         date: input.date,
         payee: input.payee,
+        payee_id: input.payee_id,
         amount: input.amount,
         memo: input.memo,
         cleared: input.cleared.unwrap_or(false),
+        linked_id: input.linked_id,
         created_at: now,
         splits,
     };
@@ -100,9 +104,11 @@ pub fn update_transaction(conn: &Connection, id: &str, input: UpdateTransaction)
         input.category_id.as_deref(),
         input.date.as_deref(),
         input.payee.as_deref(),
+        input.payee_id.as_deref(),
         input.amount,
         input.memo.as_deref(),
         input.cleared,
+        input.linked_id.as_deref(),
     )?;
 
     if let Some(ref splits) = input.splits {

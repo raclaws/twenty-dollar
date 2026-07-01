@@ -84,9 +84,11 @@ pub fn generate_due(conn: &Connection, user_id: &str, today: &str) -> AppResult<
                 category_id: schedule.category_id.clone(),
                 date: current_due.format("%Y-%m-%d").to_string(),
                 payee: schedule.payee.clone(),
+                payee_id: None,
                 amount: schedule.amount,
                 memo: schedule.memo.clone(),
                 cleared: schedule.auto_clear,
+                linked_id: None,
                 created_at: now,
                 splits: Vec::new(),
             };
