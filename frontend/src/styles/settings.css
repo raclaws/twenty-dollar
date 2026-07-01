@@ -164,3 +164,21 @@
   background: var(--c-interactive);
   border-color: var(--c-interactive);
 }
+
+.settings-section__desc {
+  font-size: var(--fs-sm);
+  color: var(--c-subtext0);
+  margin-bottom: var(--sp-2);
+}
+
+.settings-confirm-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.settings-confirm-row__text {
+  font-size: var(--fs-sm);
+  color: var(--c-warning);
+  font-weight: var(--fw-medium);
+}

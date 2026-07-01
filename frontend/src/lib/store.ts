@@ -80,8 +80,9 @@ export async function initStore(): Promise<AppStore> {
   }
   if (accounts.length > 0) reactive.notify('payees')
 
-  // Seed demo data if empty
-  if (accounts.length === 0) {
+  // Seed demo data if truly fresh (no accounts AND no categories)
+  const categories = await raw.getAll('categories')
+  if (accounts.length === 0 && categories.length === 0) {
     await seedDemoData(raw, reactive)
   }
 
