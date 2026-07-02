@@ -22,6 +22,7 @@ fn txn_to_row_json(txn: &Transaction) -> serde_json::Value {
         "memo": txn.memo,
         "cleared": txn.cleared,
         "linked_id": txn.linked_id,
+        "source": txn.source,
         "created_at": txn.created_at
     })
 }
@@ -60,6 +61,7 @@ pub fn create_transaction(conn: &Connection, user_id: &str, input: CreateTransac
         memo: input.memo,
         cleared: input.cleared.unwrap_or(false),
         linked_id: input.linked_id,
+        source: input.source,
         created_at: now,
         splits,
     };

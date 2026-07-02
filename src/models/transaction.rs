@@ -12,6 +12,7 @@ pub struct Transaction {
     pub memo: Option<String>,
     pub cleared: bool,
     pub linked_id: Option<String>,
+    pub source: Option<String>,
     pub created_at: String,
     #[serde(default)]
     pub splits: Vec<SplitEntry>,
@@ -38,6 +39,7 @@ pub struct CreateTransaction {
     pub memo: Option<String>,
     pub cleared: Option<bool>,
     pub linked_id: Option<String>,
+    pub source: Option<String>,
     #[serde(default)]
     pub splits: Vec<CreateSplitEntry>,
 }

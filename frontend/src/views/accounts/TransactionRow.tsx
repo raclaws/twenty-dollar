@@ -1,5 +1,5 @@
 import { createSignal, Show, type Component } from 'solid-js'
-import { Repeat } from 'lucide-solid'
+import { Repeat, Download, Lock } from 'lucide-solid'
 import MoneyDisplay from '~/components/MoneyDisplay'
 import { EntityIcon } from '~/components/IconPicker'
 import { PayeePicker, CategoryPicker } from '~/components/Pickers'
@@ -20,6 +20,10 @@ interface TransactionRowProps {
   tx: Record
   balance: number
   onContextMenu: (e: MouseEvent, tx: Record) => void
+  onSelect?: (txId: string, e: MouseEvent) => void
+  onCheckClick?: (txId: string, e: MouseEvent) => void
+  onHover?: (txId: string) => void
+  selected?: boolean
   showAccount?: boolean
   hideCategory?: boolean
   hideBalance?: boolean
@@ -77,8 +81,14 @@ const TransactionRow: Component<TransactionRowProps> = (props) => {
     return props.editingRowId === (props.tx.id as string)
   }
 
+  const isSystemPayee = () => {
+    const p = (props.tx.payee as string) ?? ''
+    return p === 'Starting Balance' || p === 'Balance Adjustment' || p === 'Import Carry'
+  }
+
   function startCell(field: CellField, e?: MouseEvent) {
     if (field === 'category' && isTransfer()) return
+    if (isSystemPayee() && field !== 'amount') return
     if (e) e.stopPropagation()
     if (props.onEditStart) props.onEditStart(props.tx.id as string)
     setActiveCell(field)
@@ -253,11 +263,17 @@ const TransactionRow: Component<TransactionRowProps> = (props) => {
 
   return (
     <div
-      class={`txn-row ${(props.tx.cleared as number) ? 'txn-row--cleared' : ''} ${(props.tx.reconciled_at as string) ? 'txn-row--reconciled' : ''}`}
+      class={`txn-row ${(props.tx.cleared as number) ? 'txn-row--cleared' : ''} ${(props.tx.reconciled_at as string) ? 'txn-row--reconciled' : ''} ${props.selected ? 'txn-row--selected' : ''}`}
       onContextMenu={(e) => props.onContextMenu(e, props.tx)}
+      onClick={(e) => { if (!activeCell() && props.onSelect) props.onSelect(props.tx.id as string, e) }}
+      onMouseEnter={() => { if (props.onHover) props.onHover(props.tx.id as string) }}
     >
-      {/* Select (placeholder) */}
-      <div class="txn-row__check" />
+      {/* Select checkbox */}
+      <div class="txn-row__check" onClick={(e) => { e.stopPropagation(); if (props.onCheckClick) props.onCheckClick(props.tx.id as string, e) }}>
+        <Show when={props.selected}>
+          <span class="txn-row__check-mark">✓</span>
+        </Show>
+      </div>
 
       {/* Date cell */}
       <div class="txn-row__date cell--text" onClick={(e) => startCell('date', e)} style={{ position: 'relative' }}>
@@ -285,8 +301,21 @@ const TransactionRow: Component<TransactionRowProps> = (props) => {
       <div class="txn-row__payee cell--select" onClick={(e) => startCell('payee', e)}>
         <Show when={activeCell() === 'payee' && isActive()} fallback={
           <span class="txn-row__payee-display">
-            <Show when={payeeName()} fallback={<span class="cell-placeholder">Payee</span>}>
-              <span class="payee-initial" style={{ 'background-color': getInitialColor(payeeName()) }}>{getInitial(payeeName())}</span>
+            <Show when={payeeName()} fallback={
+              <Show when={(props.tx.source as string) === 'import'} fallback={<span class="cell-placeholder">Payee</span>}>
+                <span class="txn-row__source-icon txn-row__source-icon--import"><Download size={12} /></span>
+                <span class="cell-placeholder">Imported</span>
+              </Show>
+            }>
+              <Show when={(props.tx.source as string) === 'system'}>
+                <span class="txn-row__source-icon txn-row__source-icon--system"><Lock size={12} /></span>
+              </Show>
+              <Show when={(props.tx.source as string) === 'import'}>
+                <span class="txn-row__source-icon txn-row__source-icon--import"><Download size={12} /></span>
+              </Show>
+              <Show when={(props.tx.source as string) !== 'system' && (props.tx.source as string) !== 'import'}>
+                <span class="payee-initial" style={{ 'background-color': getInitialColor(payeeName()) }}>{getInitial(payeeName())}</span>
+              </Show>
               <span>{payeeName()}</span>
             </Show>
           </span>

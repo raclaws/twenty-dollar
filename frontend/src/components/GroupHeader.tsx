@@ -6,6 +6,7 @@ export interface GroupHeaderProps {
   count: number
   collapsed: boolean
   onToggle: () => void
+  onSelect?: () => void
   aggregate?: JSX.Element
 }
 
@@ -16,7 +17,7 @@ const GroupHeader: Component<GroupHeaderProps> = (props) => {
         {props.collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
       </span>
       <span class="group-header__label">{props.label}</span>
-      <span class="group-header__count">{props.count}</span>
+      <span class="group-header__count" onClick={(e) => { e.stopPropagation(); if (props.onSelect) props.onSelect() }} title="Select group">{props.count}</span>
       <Show when={props.aggregate}>
         <span class="group-header__aggregate">{props.aggregate}</span>
       </Show>

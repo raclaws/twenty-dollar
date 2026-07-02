@@ -89,6 +89,7 @@ pub fn generate_due(conn: &Connection, user_id: &str, today: &str) -> AppResult<
                 memo: schedule.memo.clone(),
                 cleared: schedule.auto_clear,
                 linked_id: None,
+                source: Some("manual".to_string()),
                 created_at: now,
                 splits: Vec::new(),
             };

@@ -3,7 +3,7 @@ use crate::models::transaction::{Transaction, SplitEntry};
 
 pub fn list_transactions(conn: &Connection, account_id: Option<&str>, from: Option<&str>, to: Option<&str>, category_id: Option<&str>) -> Result<Vec<Transaction>, rusqlite::Error> {
     let mut sql = String::from(
-        "SELECT id, account_id, category_id, date, payee, payee_id, amount, memo, cleared, linked_id, created_at FROM transactions WHERE 1=1"
+        "SELECT id, account_id, category_id, date, payee, payee_id, amount, memo, cleared, linked_id, source, created_at FROM transactions WHERE 1=1"
     );
     let mut param_values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
 
@@ -41,7 +41,8 @@ pub fn list_transactions(conn: &Connection, account_id: Option<&str>, from: Opti
             memo: row.get(7)?,
             cleared: row.get::<_, i32>(8)? != 0,
             linked_id: row.get(9)?,
-            created_at: row.get(10)?,
+            source: row.get(10)?,
+            created_at: row.get(11)?,
             splits: Vec::new(),
         })
     })?;
@@ -58,7 +59,7 @@ pub fn list_transactions(conn: &Connection, account_id: Option<&str>, from: Opti
 
 pub fn get_transaction(conn: &Connection, id: &str) -> Result<Option<Transaction>, rusqlite::Error> {
     let txn = conn.query_row(
-        "SELECT id, account_id, category_id, date, payee, payee_id, amount, memo, cleared, linked_id, created_at FROM transactions WHERE id = ?1",
+        "SELECT id, account_id, category_id, date, payee, payee_id, amount, memo, cleared, linked_id, source, created_at FROM transactions WHERE id = ?1",
         params![id],
         |row| Ok(Transaction {
             id: row.get(0)?,
@@ -71,7 +72,8 @@ pub fn get_transaction(conn: &Connection, id: &str) -> Result<Option<Transaction
             memo: row.get(7)?,
             cleared: row.get::<_, i32>(8)? != 0,
             linked_id: row.get(9)?,
-            created_at: row.get(10)?,
+            source: row.get(10)?,
+            created_at: row.get(11)?,
             splits: Vec::new(),
         }),
     ).optional()?;
@@ -86,11 +88,11 @@ pub fn get_transaction(conn: &Connection, id: &str) -> Result<Option<Transaction
 
 pub fn insert_transaction(conn: &Connection, txn: &Transaction) -> Result<(), rusqlite::Error> {
     conn.execute(
-        "INSERT INTO transactions (id, account_id, category_id, date, payee, payee_id, amount, memo, cleared, linked_id, created_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+        "INSERT INTO transactions (id, account_id, category_id, date, payee, payee_id, amount, memo, cleared, linked_id, source, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
         params![
             txn.id, txn.account_id, txn.category_id, txn.date,
-            txn.payee, txn.payee_id, txn.amount, txn.memo, txn.cleared as i32, txn.linked_id, txn.created_at
+            txn.payee, txn.payee_id, txn.amount, txn.memo, txn.cleared as i32, txn.linked_id, txn.source, txn.created_at
         ],
     )?;
     for split in &txn.splits {

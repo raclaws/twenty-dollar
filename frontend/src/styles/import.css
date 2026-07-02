@@ -47,3 +47,32 @@
 .import-done__icon { color: var(--c-positive); margin-bottom: 12px; }
 .import-done__title { font-size: 16px; font-weight: 600; color: var(--c-text); margin: 0 0 8px; }
 .import-done__desc { font-size: 13px; color: var(--c-subtext0); margin: 0 0 20px; }
+
+.import-reconcile-offer { text-align: left; margin: 0 auto 20px; max-width: 480px; padding: 14px 16px; background: var(--c-surface0); border-radius: 10px; border: 1px solid var(--c-surface1); }
+.import-reconcile-offer__icon { color: var(--c-interactive); margin-bottom: 8px; }
+.import-reconcile-offer__text { font-size: 13px; color: var(--c-text); line-height: 1.5; }
+.import-reconcile-offer__text p { margin: 0 0 4px; }
+.import-reconcile-offer__text strong { font-weight: 600; }
+.import-reconcile-offer__actions { display: flex; gap: 8px; margin-top: 12px; }
+
+.import-categorize { display: flex; flex-direction: column; gap: 16px; }
+.import-categorize__header { }
+.import-categorize__title { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; color: var(--c-text); }
+.import-categorize__desc { font-size: 13px; color: var(--c-subtext0); margin: 4px 0 0; }
+
+.import-categorize__list { display: flex; flex-direction: column; gap: 8px; max-height: 500px; overflow-y: auto; }
+
+.import-cluster { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--c-surface0); border-radius: 8px; border: 1px solid var(--c-surface1); }
+.import-cluster__info { flex: 1; min-width: 0; }
+.import-cluster__sample { font-size: 13px; color: var(--c-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.import-cluster__meta { display: flex; gap: 12px; margin-top: 4px; font-size: 11px; color: var(--c-subtext0); }
+.import-cluster__count { font-weight: 500; }
+
+.import-cluster__assignments { display: flex; gap: 8px; flex-shrink: 0; }
+.import-cluster__field { position: relative; }
+.import-cluster__pill { padding: 4px 10px; font-size: 12px; border-radius: 6px; background: var(--c-surface1); color: var(--c-subtext0); cursor: pointer; white-space: nowrap; transition: background 0.1s; }
+.import-cluster__pill:hover { background: var(--c-surface2); color: var(--c-text); }
+.import-cluster__pill--set { background: var(--c-surface2); color: var(--c-text); }
+.import-cluster__pill--auto { background: color-mix(in srgb, var(--c-positive) 15%, var(--c-surface0)); color: var(--c-positive); }
+
+.import-categorize__footer { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; border-top: 1px solid var(--c-surface0); }

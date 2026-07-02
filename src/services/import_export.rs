@@ -107,6 +107,7 @@ pub fn import_csv(conn: &Connection, user_id: &str, csv_data: &str, default_acco
             memo: row.memo,
             cleared: false,
             linked_id: None,
+            source: Some("import".to_string()),
             created_at: now,
             splits: Vec::new(),
         };

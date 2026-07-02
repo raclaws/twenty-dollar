@@ -2,6 +2,7 @@ pub mod account;
 pub mod assignment;
 pub mod budget;
 pub mod category;
+pub mod import_rule;
 pub mod payee;
 pub mod schedule;
 pub mod transaction;

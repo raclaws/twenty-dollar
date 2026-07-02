@@ -2,6 +2,7 @@ pub mod accounts;
 pub mod assignments;
 pub mod auth;
 pub mod categories;
+pub mod import_rules;
 pub mod payees;
 pub mod schedules;
 pub mod schema;

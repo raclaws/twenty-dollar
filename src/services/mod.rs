@@ -3,6 +3,7 @@ pub mod auth;
 pub mod budget;
 pub mod categories;
 pub mod import_export;
+pub mod import_rules;
 pub mod month_lock;
 pub mod payees;
 pub mod schedules;

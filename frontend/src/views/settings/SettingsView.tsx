@@ -66,6 +66,7 @@ const SettingsView: Component = () => {
           await raw.put('transactions', {
             id: tx.id,
             account_id: tx.account_id,
+            payee: tx.payee ?? null,
             payee_id: tx.payee_id ?? null,
             category_id: tx.category_id ?? null,
             date: tx.date,

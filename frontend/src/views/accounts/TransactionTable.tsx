@@ -42,6 +42,11 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
   const [collapsed, setCollapsed] = createSignal<Set<string>>(new Set())
   const [showGroupMenu, setShowGroupMenu] = createSignal(false)
 
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = createSignal<Set<string>>(new Set())
+  const [lastSelectedId, setLastSelectedId] = createSignal<string | null>(null)
+  const [selectionAnchor, setSelectionAnchor] = createSignal<number>(-1)
+
   function toggleCollapse(key: string) {
     setCollapsed(prev => {
       const next = new Set(prev)
@@ -174,7 +179,7 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
     switch (field) {
       case 'month': return { key: (tx) => ((tx.date as string) ?? '').slice(0, 7), label: (k) => k || 'No date', sort: (a, b) => descending ? b.localeCompare(a) : a.localeCompare(b) }
       case 'date': return { key: (tx) => (tx.date as string) ?? '', label: (k) => k || 'No date', sort: (a, b) => descending ? b.localeCompare(a) : a.localeCompare(b) }
-      case 'payee': return { key: (tx) => (tx.payee_id as string) ?? '', label: (k) => k ? (pMap.get(k) ?? 'Unknown') : 'No payee' }
+      case 'payee': return { key: (tx) => (tx.payee_id as string) ?? (tx.payee as string) ?? '', label: (k) => k ? (pMap.get(k) ?? k) : 'No payee' }
       case 'category': return { key: (tx) => (tx.category_id as string) ?? '', label: (k) => k ? (cMap.get(k) ?? 'Unknown') : 'Uncategorized' }
       case 'account': return { key: (tx) => (tx.account_id as string) ?? '', label: (k) => k ? (aMap.get(k) ?? 'Unknown') : 'No account' }
     }
@@ -348,6 +353,223 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
     setScheduleTx(tx)
   }
 
+  // --- Bulk selection ---
+  function handleRowSelect(txId: string, e: MouseEvent) {
+    if (editingRowId()) return
+    if (!e.ctrlKey && !e.metaKey) return
+
+    e.stopPropagation()
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(txId)) next.delete(txId); else next.add(txId)
+      return next
+    })
+    setLastSelectedId(txId)
+  }
+
+  function handleCheckClick(txId: string, e: MouseEvent) {
+    e.stopPropagation()
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(txId)) next.delete(txId); else next.add(txId)
+      return next
+    })
+    setLastSelectedId(txId)
+  }
+
+  const [focusedIdx, setFocusedIdx] = createSignal<number>(-1)
+
+  function handleRowHover(txId: string) {
+    const items = virtualItems()
+    const rowIds = items.filter(i => i.type === 'row').map(i => (i as any).txId as string)
+    const idx = rowIds.indexOf(txId)
+    if (idx >= 0) setFocusedIdx(idx)
+  }
+
+  function selectGroup(groupKey: string) {
+    const items = virtualItems()
+    const ids: string[] = []
+    let inGroup = false
+    for (const item of items) {
+      if (item.type === 'header') {
+        inGroup = item.key === groupKey
+      } else if (inGroup) {
+        ids.push((item as any).txId as string)
+      }
+    }
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      const allSelected = ids.every(id => next.has(id))
+      if (allSelected) { for (const id of ids) next.delete(id) }
+      else { for (const id of ids) next.add(id) }
+      return next
+    })
+  }
+
+  function selectAll() {
+    const items = virtualItems()
+    const ids = items.filter(i => i.type === 'row').map(i => (i as any).txId as string)
+    setSelectedIds(new Set(ids))
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set())
+    setSelectionAnchor(-1)
+  }
+
+  // Bulk operations
+  async function bulkDelete() {
+    const ids = [...selectedIds()]
+    if (ids.length === 0) return
+    closeCtxMenu()
+    const confirmed = await confirmAction({
+      message: `Delete ${ids.length} transaction${ids.length > 1 ? 's' : ''}?`,
+      actionLabel: `Delete ${ids.length}`,
+    })
+    if (!confirmed) return
+
+    const oldRecords: Record[] = []
+    for (const id of ids) {
+      const r = await raw.get('transactions', id)
+      if (r) oldRecords.push(r)
+      await raw.delete('transactions', id)
+      apiDelete(`/api/transactions/${id}`).catch(() => {})
+    }
+    reactive.notify('transactions')
+    clearSelection()
+
+    pushUndo({
+      description: `Deleted ${ids.length} transactions`,
+      async undo() { for (const r of oldRecords) await raw.put('transactions', r); reactive.notify('transactions') },
+      async redo() { for (const id of ids) await raw.delete('transactions', id); reactive.notify('transactions') },
+    })
+  }
+
+  async function bulkSetCleared(cleared: boolean) {
+    const ids = [...selectedIds()]
+    closeCtxMenu()
+    for (const id of ids) {
+      const tx = await raw.get('transactions', id)
+      if (tx) {
+        await raw.put('transactions', { ...tx, cleared: cleared ? 1 : 0 })
+        apiPatch(`/api/transactions/${id}`, { cleared }).catch(() => {})
+      }
+    }
+    reactive.notify('transactions')
+    clearSelection()
+  }
+
+  // Keyboard handler for bulk
+  onMount(() => {
+    function handleBulkKeydown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault()
+        selectAll()
+      }
+      if (e.key === 'Escape' && selectedIds().size > 0) {
+        e.preventDefault()
+        clearSelection()
+      }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds().size > 0) {
+        e.preventDefault()
+        bulkDelete()
+      }
+      // Shift+Arrow: add/remove one row in direction
+      if (e.shiftKey && !e.ctrlKey && !e.metaKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        e.preventDefault()
+        const items = virtualItems()
+        const rowIds = items.filter(i => i.type === 'row').map(i => (i as any).txId as string)
+        let idx = focusedIdx()
+        if (idx < 0) idx = 0
+
+        const prevIdx = idx
+        if (e.key === 'ArrowDown' && idx < rowIds.length - 1) idx++
+        else if (e.key === 'ArrowUp' && idx > 0) idx--
+
+        setFocusedIdx(idx)
+
+        // If new row is already selected, we're going back — deselect the row we left
+        setSelectedIds(prev => {
+          const next = new Set(prev)
+          if (next.has(rowIds[idx]) && prevIdx !== idx) {
+            next.delete(rowIds[prevIdx])
+          } else {
+            next.add(rowIds[idx])
+          }
+          return next
+        })
+        setLastSelectedId(rowIds[idx])
+      }
+      // Ctrl+Shift+Arrow: select to group boundary OR deselect back to start
+      if (e.shiftKey && (e.ctrlKey || e.metaKey) && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        e.preventDefault()
+        const items = virtualItems()
+        const rowIds = items.filter(i => i.type === 'row').map(i => (i as any).txId as string)
+        let idx = focusedIdx()
+        if (idx < 0) idx = 0
+
+        const config = getGroupConfig()
+        if (config && rowIds.length > 0) {
+          const dir = e.key === 'ArrowDown' ? 1 : -1
+          const currentTx = sorted().find(tx => tx.id === rowIds[idx])
+          if (currentTx) {
+            const currentKey = config.key(currentTx as any)
+
+            // Check if moving toward start (deselect) or away (select to break)
+            const anchor = selectionAnchor()
+            const movingTowardAnchor = anchor >= 0 && ((dir === -1 && idx > anchor) || (dir === 1 && idx < anchor))
+
+            if (movingTowardAnchor) {
+              // Deselect back to anchor
+              const [from, to] = anchor < idx ? [anchor + 1, idx] : [idx, anchor - 1]
+              setSelectedIds(prev => {
+                const next = new Set(prev)
+                for (let i = from; i <= to; i++) next.delete(rowIds[i])
+                return next
+              })
+              setFocusedIdx(anchor)
+              setLastSelectedId(rowIds[anchor])
+            } else {
+              // Select to group boundary
+              const idsToAdd: string[] = []
+              let end = idx
+              while (end + dir >= 0 && end + dir < rowIds.length) {
+                end += dir
+                const nextTx = sorted().find(tx => tx.id === rowIds[end])
+                if (!nextTx || config.key(nextTx as any) !== currentKey) { end -= dir; break }
+                idsToAdd.push(rowIds[end])
+              }
+              setFocusedIdx(end)
+              setSelectedIds(prev => {
+                const next = new Set(prev)
+                for (const id of idsToAdd) next.add(id)
+                return next
+              })
+              setLastSelectedId(rowIds[end])
+            }
+          }
+        }
+      }
+      // Plain Arrow: move focus from hover position, select single row
+      if (!e.shiftKey && !e.ctrlKey && !e.metaKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        e.preventDefault()
+        const items = virtualItems()
+        const rowIds = items.filter(i => i.type === 'row').map(i => (i as any).txId as string)
+        if (rowIds.length === 0) return
+        let idx = focusedIdx()
+        if (idx < 0) idx = 0
+        else if (e.key === 'ArrowDown' && idx < rowIds.length - 1) idx++
+        else if (e.key === 'ArrowUp' && idx > 0) idx--
+        setFocusedIdx(idx)
+        setSelectionAnchor(idx)
+        setSelectedIds(new Set([rowIds[idx]]))
+        setLastSelectedId(rowIds[idx])
+      }
+    }
+    document.addEventListener('keydown', handleBulkKeydown)
+    onCleanup(() => document.removeEventListener('keydown', handleBulkKeydown))
+  })
+
   return (
     <div class="txn-table">
       <Show when={props.accountId && !props.compact}>
@@ -453,6 +675,7 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
                         count={item.count}
                         collapsed={collapsed().has(item.key)}
                         onToggle={() => toggleCollapse(item.key)}
+                        onSelect={() => selectGroup(item.key)}
                         aggregate={<><MoneyDisplay amount={item.aggregate} /><span class="group-header__cleared">{item.cleared}/{item.count}</span></>}
                       />
                     )
@@ -463,6 +686,10 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
                       tx={row.tx}
                       balance={row.balance}
                       onContextMenu={handleContextMenu}
+                      onSelect={handleRowSelect}
+                      onCheckClick={handleCheckClick}
+                      onHover={handleRowHover}
+                      selected={selectedIds().has(row.txId)}
                       showAccount={!props.accountId || !!props.compact}
                       hideCategory={!!props.compact}
                       hideBalance={!!props.compact}
@@ -482,11 +709,22 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
       <Show when={ctxMenu()}>
         {(menu) => (
           <div class="ctx-menu" style={{ position: 'fixed', left: `${menu().x}px`, top: `${menu().y}px` }}>
-            <div class="ctx-menu__item" onClick={() => ctxEdit(menu().tx)}>Edit</div>
-            <div class="ctx-menu__item" onClick={() => ctxToggleCleared(menu().tx)}>Toggle Cleared</div>
-            <div class="ctx-menu__item" onClick={() => ctxMakeRecurring(menu().tx)}>Make Recurring</div>
-            <div class="ctx-menu__sep" />
-            <div class="ctx-menu__item ctx-menu__item--danger" onClick={() => ctxDelete(menu().tx)}>Delete</div>
+            <Show when={selectedIds().size > 1} fallback={
+              <>
+                <div class="ctx-menu__item" onClick={() => ctxEdit(menu().tx)}>Edit</div>
+                <div class="ctx-menu__item" onClick={() => ctxToggleCleared(menu().tx)}>Toggle Cleared</div>
+                <div class="ctx-menu__item" onClick={() => ctxMakeRecurring(menu().tx)}>Make Recurring</div>
+                <div class="ctx-menu__sep" />
+                <div class="ctx-menu__item ctx-menu__item--danger" onClick={() => ctxDelete(menu().tx)}>Delete</div>
+              </>
+            }>
+              <div class="ctx-menu__item" onClick={() => bulkSetCleared(true)}>Mark {selectedIds().size} cleared</div>
+              <div class="ctx-menu__item" onClick={() => bulkSetCleared(false)}>Mark {selectedIds().size} uncleared</div>
+              <div class="ctx-menu__sep" />
+              <div class="ctx-menu__item ctx-menu__item--danger" onClick={bulkDelete}>Delete {selectedIds().size} transactions</div>
+              <div class="ctx-menu__sep" />
+              <div class="ctx-menu__item" onClick={() => { clearSelection(); closeCtxMenu() }}>Deselect all</div>
+            </Show>
           </div>
         )}
       </Show>

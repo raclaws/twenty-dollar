@@ -61,6 +61,7 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
     const q = query().toLowerCase()
     const result: FlatItem[] = []
 
+    let isFirst = true
     for (const section of props.sections) {
       const filtered = q
         ? section.items.filter(i => i.label.toLowerCase().includes(q))
@@ -70,15 +71,20 @@ const EntityPicker: Component<EntityPickerProps> = (props) => {
         result.push({ type: 'item', id: item.id, label: item.label, sectionKey: section.key, meta: item.meta, icon: item.icon })
       }
 
+      // After the first section (blank/none), insert + New Group
+      if (isFirst && props.allowNewGroup) {
+        result.push({ type: 'new-group', id: '__new_group', label: '+ New Group', sectionKey: '' })
+        isFirst = false
+      } else {
+        isFirst = false
+      }
+
+      // Per-section create: stays at end of its group (contextual)
       if (section.allowCreate && q && !filtered.some(i => i.label.toLowerCase() === q)) {
         result.push({ type: 'create', id: `__create_${section.key}`, label: `+ "${query()}"`, sectionKey: section.key })
       } else if (section.allowCreate && !q) {
         result.push({ type: 'create', id: `__create_${section.key}`, label: section.createLabel ?? '+ Add new', sectionKey: section.key })
       }
-    }
-
-    if (props.allowNewGroup) {
-      result.push({ type: 'new-group', id: '__new_group', label: '+ New Group', sectionKey: '' })
     }
 
     return result

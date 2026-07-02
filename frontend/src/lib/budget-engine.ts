@@ -46,14 +46,19 @@ export function computeBudget(
   const monthStart = `${month}-01`
   const monthEnd = lastDayOfMonth(month)
 
-  const totalIncome = computeTotalIncome(transactions, monthEnd)
-  const totalAssigned = computeTotalAssigned(assignments, month)
-  const rta = totalIncome - totalAssigned
+  // Budget starts from the earliest Starting Balance month
+  const budgetStartMonth = getBudgetStartMonth(transactions)
+  const isBeforeBudgetStart = budgetStartMonth ? month < budgetStartMonth : false
+  const budgetStartDate = budgetStartMonth ? `${budgetStartMonth}-01` : null
+
+  const totalAvailable = isBeforeBudgetStart ? 0 : computeUncategorizedTotal(transactions, splitEntries, monthEnd, budgetStartDate)
+  const totalAssigned = isBeforeBudgetStart ? 0 : computeTotalAssigned(assignments, month, budgetStartMonth)
+  const rta = totalAvailable - totalAssigned
 
   const activityThisMonth = activityByCategory(transactions, splitEntries, monthStart, monthEnd)
-  const cumulativeActivity = cumulativeActivityByCategory(transactions, splitEntries, monthEnd)
+  const cumulativeActivity = cumulativeActivityByCategory(transactions, splitEntries, monthEnd, budgetStartDate)
   const assignedThisMonth = assignedForMonth(assignments, month)
-  const cumAssigned = cumulativeAssignedByCategory(assignments, month)
+  const cumAssigned = cumulativeAssignedByCategory(assignments, month, budgetStartMonth)
 
   const categoryMap = new Map<string, CategoryBudget>()
 
@@ -143,20 +148,44 @@ export function computeTargetStatus(
   return null
 }
 
-function computeTotalIncome(transactions: Record[], endDate: string): number {
-  let total = 0
+function getBudgetStartMonth(transactions: Record[]): string | null {
+  let earliest: string | null = null
   for (const tx of transactions) {
-    if ((tx.amount as number) > 0 && (tx.date as string) <= endDate && !tx.linked_id) {
-      total += tx.amount as number
+    const payee = tx.payee as string | null
+    if (payee === 'Starting Balance' || payee === 'Balance Adjustment') {
+      const date = (tx.date as string).slice(0, 7)
+      if (!earliest || date < earliest) earliest = date
+    }
+  }
+  return earliest
+}
+
+function computeUncategorizedTotal(
+  transactions: Record[],
+  splits: Record[],
+  endDate: string,
+  startDate: string | null,
+): number {
+  let total = 0
+  const txsWithSplits = new Set(splits.map(s => s.transaction_id as string))
+  for (const tx of transactions) {
+    const date = tx.date as string
+    if (date <= endDate && !tx.linked_id) {
+      if (startDate && date < startDate) continue
+      if (tx.category_id == null && !txsWithSplits.has(tx.id as string)) {
+        total += tx.amount as number
+      }
     }
   }
   return total
 }
 
-function computeTotalAssigned(assignments: Record[], upToMonth: string): number {
+function computeTotalAssigned(assignments: Record[], upToMonth: string, startMonth: string | null): number {
   let total = 0
   for (const a of assignments) {
-    if ((a.month as string) <= upToMonth) {
+    const m = a.month as string
+    if (m <= upToMonth) {
+      if (startMonth && m < startMonth) continue
       total += a.amount as number
     }
   }
@@ -198,12 +227,15 @@ function cumulativeActivityByCategory(
   transactions: Record[],
   splits: Record[],
   endDate: string,
+  startDate: string | null,
 ): Map<string, number> {
   const map = new Map<string, number>()
   const txsWithSplits = new Set(splits.map(s => s.transaction_id as string))
 
   for (const tx of transactions) {
-    if ((tx.date as string) <= endDate && tx.category_id != null && !txsWithSplits.has(tx.id as string)) {
+    const date = tx.date as string
+    if (date <= endDate && tx.category_id != null && !txsWithSplits.has(tx.id as string)) {
+      if (startDate && date < startDate) continue
       const id = tx.category_id as string
       map.set(id, (map.get(id) ?? 0) + (tx.amount as number))
     }
@@ -213,7 +245,9 @@ function cumulativeActivityByCategory(
     if (split.category_id == null) continue
     const tx = transactions.find(t => t.id === split.transaction_id)
     if (!tx) continue
-    if ((tx.date as string) <= endDate) {
+    const date = tx.date as string
+    if (date <= endDate) {
+      if (startDate && date < startDate) continue
       const id = split.category_id as string
       map.set(id, (map.get(id) ?? 0) + (split.amount as number))
     }
@@ -233,10 +267,12 @@ function assignedForMonth(assignments: Record[], month: string): Map<string, num
   return map
 }
 
-function cumulativeAssignedByCategory(assignments: Record[], upToMonth: string): Map<string, number> {
+function cumulativeAssignedByCategory(assignments: Record[], upToMonth: string, startMonth: string | null): Map<string, number> {
   const map = new Map<string, number>()
   for (const a of assignments) {
-    if ((a.month as string) <= upToMonth) {
+    const m = a.month as string
+    if (m <= upToMonth) {
+      if (startMonth && m < startMonth) continue
       const id = a.category_id as string
       map.set(id, (map.get(id) ?? 0) + (a.amount as number))
     }

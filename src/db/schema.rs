@@ -64,6 +64,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             linked_id TEXT,
             reconciled_at TEXT,
             schedule_id TEXT REFERENCES schedules(id) ON DELETE SET NULL,
+            source TEXT DEFAULT 'manual',
             created_at TEXT NOT NULL
         );
 
@@ -155,6 +156,26 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
             user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
             currency TEXT NOT NULL DEFAULT 'USD'
         );
+
+        CREATE TABLE IF NOT EXISTS import_rules (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            tokens TEXT NOT NULL,
+            payee_id TEXT,
+            category_id TEXT REFERENCES categories(id) ON DELETE SET NULL,
+            created_at TEXT NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_import_rules_user ON import_rules(user_id);
         "
-    )
+    )?;
+
+    // Migrations for existing databases
+    let has_source: bool = conn.prepare("SELECT source FROM transactions LIMIT 0")
+        .is_ok();
+    if !has_source {
+        conn.execute_batch("ALTER TABLE transactions ADD COLUMN source TEXT DEFAULT 'manual';")?;
+    }
+
+    Ok(())
 }

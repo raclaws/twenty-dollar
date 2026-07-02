@@ -100,6 +100,9 @@ pub fn build_router(pool: DbPool) -> Router {
         // Import/Export
         .route("/api/import", post(handlers::import_export::import_csv))
         .route("/api/export", get(handlers::import_export::export_json))
+        // Import Rules
+        .route("/api/import-rules", get(handlers::import_rules::list).post(handlers::import_rules::create))
+        .route("/api/import-rules/{id}", patch(handlers::import_rules::update).delete(handlers::import_rules::delete))
         // Schedules
         .route("/api/schedules", get(handlers::schedules::list))
         .route("/api/schedules", post(handlers::schedules::create))

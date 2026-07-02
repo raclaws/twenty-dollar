@@ -41,9 +41,14 @@ const AccountsView: Component = () => {
   const [addMore, setAddMore] = createSignal(false)
   const [newName, setNewName] = createSignal('')
   const [newType, setNewType] = createSignal('checking')
+  const [newBalance, setNewBalance] = createSignal('')
   const [showNewTypePicker, setShowNewTypePicker] = createSignal(false)
   const [nameError, setNameError] = createSignal('')
   let pickerJustClosed = false
+
+  // Reconcile dialog state
+  const [reconcileAccount, setReconcileAccount] = createSignal<Record | null>(null)
+  const [reconcileInput, setReconcileInput] = createSignal('')
 
   // Per-cell edit state
   const [editingRowId, setEditingRowId] = createSignal<string | null>(null)
@@ -73,8 +78,8 @@ const AccountsView: Component = () => {
   // --- Add dialog ---
   function openDialog() { setIsDialogOpen(true) }
   function closeDialog() { setIsDialogOpen(false); resetForm() }
-  function resetForm() { setNewName(''); setNewType('checking'); setNameError(''); setShowNewTypePicker(false) }
-  function resetForAddMore() { setNewName(''); setNameError(''); setShowNewTypePicker(false) }
+  function resetForm() { setNewName(''); setNewType('checking'); setNewBalance(''); setNameError(''); setShowNewTypePicker(false) }
+  function resetForAddMore() { setNewName(''); setNewBalance(''); setNameError(''); setShowNewTypePicker(false) }
 
   function cancelNewTypePicker() {
     pickerJustClosed = true
@@ -92,6 +97,7 @@ const AccountsView: Component = () => {
     const id = crypto.randomUUID()
     const payeeId = crypto.randomUUID()
     const now = new Date().toISOString()
+    const today = now.slice(0, 10)
     const record = { id, name, type: newType(), sort_order: activeAccounts().length, created_at: now, deleted_at: null }
     const payeeRecord = { id: payeeId, name, type: 'account', account_id: id, created_at: now }
 
@@ -103,10 +109,47 @@ const AccountsView: Component = () => {
     apiPost('/api/accounts', { id, name, type: newType() }).catch(() => {})
     apiPost('/api/payees', { id: payeeId, name, type: 'account', account_id: id }).catch(() => {})
 
+    // Starting balance transaction (always created)
+    const balanceRaw = newBalance().trim()
+    const balanceAmount = balanceRaw ? Math.round(parseFloat(balanceRaw.replace(/,/g, '')) * 100) : 0
+    if (isNaN(balanceAmount) || balanceAmount < 0) { setNameError('Starting balance must be 0 or a positive number'); return }
+
+    const txId = crypto.randomUUID()
+    const startingTxRecord = {
+      id: txId, account_id: id, date: today, amount: balanceAmount,
+      payee: 'Starting Balance', payee_id: null, category_id: null,
+      memo: null, cleared: true, linked_id: null, source: 'system', splits: [],
+      created_at: now,
+    }
+    await raw.put('transactions', { ...startingTxRecord, cleared: 1 })
+    reactive.notify('transactions')
+    apiPost('/api/transactions', startingTxRecord).catch(() => {})
+
     pushUndo({
       description: `Created account "${name}"`,
-      async undo() { await raw.delete('accounts', id); await raw.delete('payees', payeeId); reactive.notify('accounts'); reactive.notify('payees') },
-      async redo() { await raw.put('accounts', record); await raw.put('payees', payeeRecord); reactive.notify('accounts'); reactive.notify('payees') },
+      async undo() {
+        // Guard: if account has transactions beyond Starting Balance, block undo
+        const txns = await raw.query('transactions', { where: { account_id: id } })
+        const nonStarting = txns.filter(t => (t.payee as string) !== 'Starting Balance')
+        if (nonStarting.length > 0) {
+          await confirmAction({
+            message: `Cannot undo — "${name}" now has ${nonStarting.length} transaction${nonStarting.length > 1 ? 's' : ''}. Delete them first.`,
+            actionLabel: 'OK',
+            danger: false,
+          })
+          return
+        }
+        const confirmed = await confirmAction({ message: `Undo account creation "${name}"? This will delete the account.`, actionLabel: 'Undo' })
+        if (!confirmed) return
+        await raw.delete('accounts', id); await raw.delete('payees', payeeId)
+        await raw.delete('transactions', startingTxRecord.id)
+        reactive.notify('accounts'); reactive.notify('payees'); reactive.notify('transactions')
+      },
+      async redo() {
+        await raw.put('accounts', record); await raw.put('payees', payeeRecord)
+        await raw.put('transactions', { ...startingTxRecord, cleared: 1 })
+        reactive.notify('accounts'); reactive.notify('payees'); reactive.notify('transactions')
+      },
     })
 
     if (addMore()) { resetForAddMore() } else { closeDialog() }
@@ -178,7 +221,9 @@ const AccountsView: Component = () => {
     if (!confirmed) return
 
     const record = await raw.get('accounts', id)
-    await raw.delete('accounts', id)
+    const now = new Date().toISOString()
+    const softDeleted = { ...record, deleted_at: now }
+    await raw.put('accounts', softDeleted)
     reactive.notify('accounts')
 
     apiDelete(`/api/accounts/${id}`).catch(() => {})
@@ -186,8 +231,100 @@ const AccountsView: Component = () => {
     pushUndo({
       description: `Deleted account "${name}"`,
       async undo() { if (record) { await raw.put('accounts', record); reactive.notify('accounts') } },
-      async redo() { await raw.delete('accounts', id); reactive.notify('accounts') },
+      async redo() { await raw.put('accounts', softDeleted); reactive.notify('accounts') },
     })
+  }
+
+  // --- Reconcile ---
+  function openReconcile(account: Record) {
+    setReconcileAccount(account)
+    setReconcileInput('')
+  }
+
+  function closeReconcile() {
+    setReconcileAccount(null)
+    setReconcileInput('')
+  }
+
+  async function handleReconcile() {
+    const account = reconcileAccount()
+    if (!account) return
+    const inputVal = reconcileInput().trim()
+    if (!inputVal) return
+
+    const realBalance = Math.round(parseFloat(inputVal.replace(/,/g, '')) * 100)
+    if (isNaN(realBalance)) return
+
+    const accId = account.id as string
+
+    // Get all transactions for this account
+    const allTxns = await raw.query('transactions', { where: { account_id: accId } })
+
+    // Sum all non-adjustment transactions (includes Starting Balance)
+    const nonAdjustment = allTxns.filter(t => (t.payee as string) !== 'Balance Adjustment')
+    const nonAdjSum = nonAdjustment.reduce((sum, t) => sum + (t.amount as number), 0)
+
+    // Required adjustment = real balance - sum of all non-adjustment txns
+    const needed = realBalance - nonAdjSum
+
+    // Find existing Balance Adjustment
+    const existing = allTxns.find(t => (t.payee as string) === 'Balance Adjustment')
+
+    if (needed === 0 && existing) {
+      // No longer needed — delete it
+      const oldRecord = { ...existing }
+      await raw.delete('transactions', existing.id as string)
+      reactive.notify('transactions')
+      apiDelete(`/api/transactions/${existing.id}`).catch(() => {})
+
+      pushUndo({
+        description: `Reconcile "${account.name}" — removed adjustment`,
+        async undo() { await raw.put('transactions', oldRecord); reactive.notify('transactions') },
+        async redo() { await raw.delete('transactions', existing.id as string); reactive.notify('transactions') },
+      })
+    } else if (needed === 0) {
+      // Already balanced, nothing to do
+      closeReconcile()
+      return
+    } else if (existing) {
+      // Update existing Balance Adjustment
+      const oldRecord = { ...existing }
+      const now = new Date().toISOString()
+      const today = now.slice(0, 10)
+      const updated = { ...existing, amount: needed, date: today }
+      await raw.put('transactions', updated)
+      reactive.notify('transactions')
+
+      apiPatch(`/api/transactions/${existing.id}`, { amount: needed, date: today }).catch(() => {})
+
+      pushUndo({
+        description: `Reconcile "${account.name}" (adjustment: ${(needed / 100).toFixed(2)})`,
+        async undo() { await raw.put('transactions', oldRecord); reactive.notify('transactions') },
+        async redo() { await raw.put('transactions', updated); reactive.notify('transactions') },
+      })
+    } else {
+      // Create new Balance Adjustment dated today
+      const txId = crypto.randomUUID()
+      const now = new Date().toISOString()
+      const today = now.slice(0, 10)
+      const txRecord = {
+        id: txId, account_id: accId, date: today, amount: needed,
+        payee: 'Balance Adjustment', payee_id: null, category_id: null,
+        memo: 'Reconciliation', cleared: true, linked_id: null, source: 'system', splits: [],
+        created_at: now,
+      }
+      await raw.put('transactions', { ...txRecord, cleared: 1 })
+      reactive.notify('transactions')
+      apiPost('/api/transactions', txRecord).catch(() => {})
+
+      pushUndo({
+        description: `Reconcile "${account.name}" (adjustment: ${(needed / 100).toFixed(2)})`,
+        async undo() { await raw.delete('transactions', txId); reactive.notify('transactions') },
+        async redo() { await raw.put('transactions', { ...txRecord, cleared: 1 }); reactive.notify('transactions') },
+      })
+    }
+
+    closeReconcile()
   }
 
   // --- Navigation ---
@@ -326,6 +463,7 @@ const AccountsView: Component = () => {
         {(menu) => (
           <div class="ctx-menu" style={{ position: 'fixed', left: `${menu().x}px`, top: `${menu().y}px` }}>
             <div class="ctx-menu__item" onClick={() => { startCell(menu().account.id as string, 'name'); closeCtxMenu() }}>Edit</div>
+            <div class="ctx-menu__item" onClick={() => { openReconcile(menu().account); closeCtxMenu() }}>Reconcile</div>
             <div class="ctx-menu__sep" />
             <div class="ctx-menu__item ctx-menu__item--danger" onClick={() => { deleteAccount(menu().account.id as string, menu().account.name as string); closeCtxMenu() }}>Delete</div>
           </div>
@@ -377,6 +515,20 @@ const AccountsView: Component = () => {
                   </Show>
                 </div>
               </div>
+              <div class="add-txn-dialog__field">
+                <label class="add-txn-dialog__label">Starting Balance</label>
+                <div class="add-txn-dialog__input-wrap">
+                  <input
+                    class="add-txn-dialog__input"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={newBalance()}
+                    onInput={(e) => setNewBalance(e.currentTarget.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleAddAccount() } }}
+                  />
+                </div>
+              </div>
             </div>
             <div class="add-txn-dialog__footer">
               <div class="add-txn-dialog__footer-left">
@@ -391,6 +543,72 @@ const AccountsView: Component = () => {
             </div>
           </div>
         </div>
+      </Show>
+      {/* Reconcile Dialog */}
+      <Show when={reconcileAccount()}>
+        {(account) => {
+          const stats = () => accountStats().get(account().id as string) ?? { balance: 0, txCount: 0 }
+          return (
+            <div class="add-txn-overlay" onClick={closeReconcile}>
+              <div class="add-txn-dialog" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === 'Escape') closeReconcile() }}>
+                <div class="add-txn-dialog__header">
+                  <div class="add-txn-dialog__title">
+                    <span>Reconcile "{account().name as string}"</span>
+                  </div>
+                  <button class="add-txn-dialog__close" onClick={closeReconcile}>Esc</button>
+                </div>
+                <div class="add-txn-dialog__body">
+                  <div class="add-txn-dialog__field">
+                    <label class="add-txn-dialog__label">Current balance in app</label>
+                    <div class="add-txn-dialog__input-wrap">
+                      <span class={`reconcile-balance ${stats().balance >= 0 ? 'money--positive' : 'money--negative'}`}>
+                        {stats().balance < 0 ? '-' : ''}{formatMoneyUnsigned(Math.abs(stats().balance))}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="add-txn-dialog__field">
+                    <label class="add-txn-dialog__label">Actual bank balance</label>
+                    <div class="add-txn-dialog__input-wrap">
+                      <input
+                        class="add-txn-dialog__input"
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="Enter real balance..."
+                        value={reconcileInput()}
+                        onInput={(e) => setReconcileInput(e.currentTarget.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleReconcile() } }}
+                        ref={(el) => setTimeout(() => el.focus(), 50)}
+                      />
+                    </div>
+                  </div>
+                  <Show when={reconcileInput().trim()}>
+                    {() => {
+                      const realBal = () => Math.round(parseFloat(reconcileInput().replace(/,/g, '')) * 100)
+                      const diff = () => isNaN(realBal()) ? 0 : realBal() - stats().balance
+                      return (
+                        <div class="add-txn-dialog__field">
+                          <label class="add-txn-dialog__label">Adjustment</label>
+                          <div class="add-txn-dialog__input-wrap">
+                            <span class={diff() >= 0 ? 'money--positive' : 'money--negative'}>
+                              {diff() < 0 ? '-' : '+'}{formatMoneyUnsigned(Math.abs(diff()))}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    }}
+                  </Show>
+                </div>
+                <div class="add-txn-dialog__footer">
+                  <div class="add-txn-dialog__footer-left" />
+                  <div class="add-txn-dialog__footer-right">
+                    <button class="btn btn--sm btn--ghost" onClick={closeReconcile}>Cancel</button>
+                    <button class="btn btn--sm btn--primary" onClick={handleReconcile}>Reconcile</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        }}
       </Show>
     </div>
   )
