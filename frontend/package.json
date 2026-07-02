@@ -13,6 +13,7 @@
   "dependencies": {
     "@solidjs/router": "^0.15.3",
     "lucide-solid": "^1.22.0",
+    "pdfjs-dist": "^6.1.200",
     "solid-js": "^1.9.3"
   },
   "devDependencies": {

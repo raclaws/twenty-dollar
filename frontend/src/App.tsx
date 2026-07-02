@@ -1,6 +1,6 @@
 import { createSignal, createContext, useContext, createMemo, createEffect, onMount, Show, For, type ParentComponent, type Accessor } from 'solid-js'
 import { A, useLocation, useNavigate } from '@solidjs/router'
-import { LayoutGrid, ArrowLeftRight, CreditCard, Settings, Wallet, AlertTriangle, TrendingDown, AlertCircle, CircleDot } from 'lucide-solid'
+import { LayoutGrid, ArrowLeftRight, CreditCard, Settings, Wallet, AlertTriangle, TrendingDown, AlertCircle, CircleDot, Upload } from 'lucide-solid'
 import { ACCOUNT_TYPE_ICONS } from './lib/icons'
 import type { AppStore } from './lib/store'
 import { initStore } from './lib/store'
@@ -147,7 +147,7 @@ const App: ParentComponent = (props) => {
 function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { reactive } = useStore()
+  const { raw, reactive } = useStore()
   const { month } = useMonth()
   const { setFilter } = useBudgetFilter()
   const accounts = createQuery(reactive, 'accounts')
@@ -266,6 +266,10 @@ function Sidebar() {
           <CreditCard size={16} />
           Accounts
         </A>
+        <A href="/import" class={`sidebar__link ${isActive('/import') ? 'sidebar__link--active' : ''}`}>
+          <Upload size={16} />
+          Import
+        </A>
         <A href="/settings" class={`sidebar__link ${isActive('/settings') ? 'sidebar__link--active' : ''}`}>
           <Settings size={16} />
           Settings
@@ -306,8 +310,11 @@ function Sidebar() {
           })
           if (!confirmed) return
           await fetch('/api/auth/logout', { method: 'POST' })
+          const tables = ['accounts', 'payees', 'category_groups', 'categories', 'transactions', 'split_entries', 'assignments', 'schedules']
+          for (const table of tables) await raw.clear(table)
           localStorage.removeItem('user_name')
           localStorage.removeItem('user_email')
+          localStorage.removeItem('twenty-dollar:seeded')
           navigate('/login', { replace: true })
         }}>Log out</button>
       </div>

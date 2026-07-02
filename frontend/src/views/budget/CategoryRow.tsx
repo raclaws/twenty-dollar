@@ -141,9 +141,9 @@ const CategoryRow: Component<CategoryRowProps> = (props) => {
     e.stopPropagation()
     const status = statusLabel().text
     if (status === 'Overspent' || status === 'Underfunded' || status === 'Unfunded') {
-      props.onCoverFrom?.(props.budget.categoryId)
-    } else if (status === 'Healthy') {
       props.onMoveTo?.(props.budget.categoryId)
+    } else if (status === 'Healthy') {
+      props.onCoverFrom?.(props.budget.categoryId)
     }
   }
 

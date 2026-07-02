@@ -79,7 +79,7 @@ const BudgetView: Component = () => {
 
   function openCover(catId: string) {
     const cat = budgetStore.budget().categoryMap.get(catId)
-    const needsFunding = cat && (cat.available < 0 || cat.target?.isUnderfunded)
+    const needsFunding = cat && (cat.available < 0 || cat.target?.isUnderfunded || (cat.target && cat.available < cat.target.targetAmount))
     setCoverTarget({ catId, catName: cat?.categoryName ?? '', side: needsFunding ? 'to' : 'from' })
   }
 
@@ -396,8 +396,14 @@ const BudgetView: Component = () => {
           onMoveCategory={moveCategory}
           onDeleteGroup={deleteGroup}
           onDeleteCategory={deleteCategory}
-          onCoverFrom={(catId) => openCover(catId)}
-          onMoveTo={(catId) => openCover(catId)}
+          onCoverFrom={(catId) => {
+            const cat = budgetStore.budget().categoryMap.get(catId)
+            setCoverTarget({ catId, catName: cat?.categoryName ?? '', side: 'from' })
+          }}
+          onMoveTo={(catId) => {
+            const cat = budgetStore.budget().categoryMap.get(catId)
+            setCoverTarget({ catId, catName: cat?.categoryName ?? '', side: 'to' })
+          }}
           onViewDetail={(catId) => setDetailCatId(catId)}
           onSetTarget={(catId) => setTargetCatId(catId)}
           showAddGroup={showAddGroup()}
