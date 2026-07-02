@@ -38,9 +38,18 @@ impl IntoResponse for AppError {
             AppError::MonthLocked(m) => (StatusCode::CONFLICT, format!("Month {} is locked", m)),
             AppError::Conflict(msg) => (StatusCode::CONFLICT, msg.clone()),
             AppError::RateLimited => (StatusCode::TOO_MANY_REQUESTS, "Too many attempts. Try again in a minute.".into()),
-            AppError::Database(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Database error".into()),
-            AppError::Pool(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Service unavailable".into()),
-            AppError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal error".into()),
+            AppError::Database(e) => {
+                tracing::error!("Database error: {e}");
+                (StatusCode::INTERNAL_SERVER_ERROR, format!("Database error: {e}"))
+            },
+            AppError::Pool(e) => {
+                tracing::error!("Pool error: {e}");
+                (StatusCode::INTERNAL_SERVER_ERROR, "Service unavailable".into())
+            },
+            AppError::Internal(e) => {
+                tracing::error!("Internal error: {e}");
+                (StatusCode::INTERNAL_SERVER_ERROR, format!("Internal error: {e}"))
+            },
         };
 
         let body = json!({ "error": message });
