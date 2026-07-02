@@ -170,7 +170,7 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         "
     )?;
 
-    // Migrations for existing databases
+    // Migrations for existing databases — transactions
     let has_source: bool = conn.prepare("SELECT source FROM transactions LIMIT 0")
         .is_ok();
     if !has_source {
@@ -199,6 +199,41 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         .is_ok();
     if !has_schedule_id {
         conn.execute_batch("ALTER TABLE transactions ADD COLUMN schedule_id TEXT;")?;
+    }
+
+    // Migrations for existing databases — accounts
+    let has_deleted_at: bool = conn.prepare("SELECT deleted_at FROM accounts LIMIT 0")
+        .is_ok();
+    if !has_deleted_at {
+        conn.execute_batch("ALTER TABLE accounts ADD COLUMN deleted_at TEXT;")?;
+    }
+
+    let has_account_icon: bool = conn.prepare("SELECT icon FROM accounts LIMIT 0")
+        .is_ok();
+    if !has_account_icon {
+        conn.execute_batch("ALTER TABLE accounts ADD COLUMN icon TEXT;")?;
+    }
+
+    // Migrations for existing databases — category_groups
+    let has_group_icon: bool = conn.prepare("SELECT icon FROM category_groups LIMIT 0")
+        .is_ok();
+    if !has_group_icon {
+        conn.execute_batch("ALTER TABLE category_groups ADD COLUMN icon TEXT;")?;
+    }
+
+    // Migrations for existing databases — categories
+    let has_cat_icon: bool = conn.prepare("SELECT icon FROM categories LIMIT 0")
+        .is_ok();
+    if !has_cat_icon {
+        conn.execute_batch("ALTER TABLE categories ADD COLUMN icon TEXT;")?;
+    }
+
+    let has_target_type: bool = conn.prepare("SELECT target_type FROM categories LIMIT 0")
+        .is_ok();
+    if !has_target_type {
+        conn.execute_batch("ALTER TABLE categories ADD COLUMN target_type TEXT;")?;
+        conn.execute_batch("ALTER TABLE categories ADD COLUMN target_amount INTEGER;")?;
+        conn.execute_batch("ALTER TABLE categories ADD COLUMN target_date TEXT;")?;
     }
 
     Ok(())
