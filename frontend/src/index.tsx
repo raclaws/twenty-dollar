@@ -19,6 +19,7 @@ import SettingsView from './views/settings/SettingsView'
 import ImportView from './views/import/ImportView'
 import LoginView from './views/auth/LoginView'
 import SetupView from './views/auth/SetupView'
+import DesignSample from './views/DesignSample'
 import './styles/global.css'
 import './styles/components.css'
 import './styles/budget.css'
@@ -41,6 +42,7 @@ render(
       <Route path="/accounts" component={AccountsView} />
       <Route path="/import" component={ImportView} />
       <Route path="/settings" component={SettingsView} />
+      <Route path="/design" component={DesignSample} />
     </Router>
   ),
   document.getElementById('app')!,

@@ -1,5 +1,5 @@
 /* ─── Money Display ─── */
-.money { font-variant-numeric: tabular-nums; }
+.money { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .money--positive { color: var(--c-positive); }
 .money--negative { color: var(--c-negative); }
 .money--zero { color: var(--c-overlay0); }

@@ -49,8 +49,8 @@ a {
 }
 
 ::selection {
-  background: var(--c-blue);
-  color: var(--c-crust);
+  background: var(--c-interactive);
+  color: var(--c-base);
 }
 
 ::-webkit-scrollbar {

@@ -299,6 +299,7 @@
   max-width: 140px;
   flex-shrink: 0;
   text-align: right;
+  font-family: var(--font-mono);
   font-size: var(--fs-sm);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -407,6 +408,7 @@
   max-width: 140px;
   flex-shrink: 0;
   text-align: right;
+  font-family: var(--font-mono);
   font-size: var(--fs-md);
   overflow: hidden;
   text-overflow: ellipsis;

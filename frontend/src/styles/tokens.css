@@ -1,25 +1,25 @@
 :root {
-  /* ─── Base (Catppuccin Mocha) ─── */
-  --c-base: #1e1e2e;
-  --c-mantle: #181825;
-  --c-crust: #11111b;
-  --c-surface0: #313244;
-  --c-surface1: #45475a;
-  --c-surface2: #585b70;
+  /* ─── Base (Dark Neon) ─── */
+  --c-base: #0a0a0f;
+  --c-mantle: #08080c;
+  --c-crust: #060609;
+  --c-surface0: #1e1e26;
+  --c-surface1: #2a2a34;
+  --c-surface2: #36363f;
 
   /* ─── Text ─── */
-  --c-text: #cdd6f4;
-  --c-subtext1: #bac2de;
-  --c-subtext0: #a6adc8;
-  --c-overlay0: #6c7086;
+  --c-text: #e8e8ee;
+  --c-subtext1: #c8c8d0;
+  --c-subtext0: #a0a0aa;
+  --c-overlay0: #5a5a66;
 
   /* ─── Accent ─── */
-  --c-blue: #89b4fa;
-  --c-green: #a6e3a1;
-  --c-red: #f38ba8;
-  --c-yellow: #f9e2af;
-  --c-mauve: #cba6f7;
-  --c-teal: #94e2d5;
+  --c-blue: #6366f1;
+  --c-green: #00ff41;
+  --c-red: #ff3366;
+  --c-yellow: #ffee00;
+  --c-mauve: #a78bfa;
+  --c-teal: #00e5ff;
 
   /* ─── Semantic ─── */
   --c-positive: var(--c-green);
@@ -28,6 +28,12 @@
   --c-interactive: var(--c-blue);
   --c-transfer: var(--c-mauve);
   --c-reconciled: var(--c-teal);
+
+  /* ─── Semantic Backgrounds ─── */
+  --c-positive-bg: #0d2922;
+  --c-negative-bg: #2a0015;
+  --c-warning-bg: #2a2200;
+  --c-interactive-bg: #1a1a3d;
 
   /* ─── Spacing (4px base) ─── */
   --sp-1: 4px;
@@ -41,22 +47,23 @@
   --sp-12: 48px;
   --sp-16: 64px;
 
-  /* ─── Border Radius ─── */
-  --r-sm: 4px;
-  --r-md: 6px;
-  --r-lg: 8px;
-  --r-xl: 12px;
-  --r-2xl: 16px;
+  /* ─── Border Radius (Sharp) ─── */
+  --r-sm: 2px;
+  --r-md: 2px;
+  --r-lg: 4px;
+  --r-xl: 4px;
+  --r-2xl: 6px;
   --r-full: 9999px;
 
   /* ─── Typography ─── */
-  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --fs-xs: 11px;
-  --fs-sm: 12px;
-  --fs-md: 13px;
-  --fs-lg: 15px;
-  --fs-xl: 18px;
-  --fs-2xl: 22px;
+  --font: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --fs-xs: 14px;
+  --fs-sm: 15px;
+  --fs-md: 16px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+  --fs-2xl: 28px;
   --fw-regular: 400;
   --fw-medium: 500;
   --fw-semibold: 600;
@@ -71,15 +78,15 @@
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* ─── Shadows ─── */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.7);
 
   /* ─── Layout ─── */
   --sidebar-w: 240px;
   --topbar-h: 56px;
-  --row-h: 36px;
-  --row-h-lg: 44px;
+  --row-h: 40px;
+  --row-h-lg: 48px;
   --input-h: 36px;
   --input-h-lg: 40px;
 }
