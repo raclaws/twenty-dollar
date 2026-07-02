@@ -236,5 +236,18 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         conn.execute_batch("ALTER TABLE categories ADD COLUMN target_date TEXT;")?;
     }
 
+    // Migrations for existing databases — payees
+    let has_payee_type: bool = conn.prepare("SELECT type FROM payees LIMIT 0")
+        .is_ok();
+    if !has_payee_type {
+        conn.execute_batch("ALTER TABLE payees ADD COLUMN type TEXT;")?;
+    }
+
+    let has_payee_account_id: bool = conn.prepare("SELECT account_id FROM payees LIMIT 0")
+        .is_ok();
+    if !has_payee_account_id {
+        conn.execute_batch("ALTER TABLE payees ADD COLUMN account_id TEXT;")?;
+    }
+
     Ok(())
 }
