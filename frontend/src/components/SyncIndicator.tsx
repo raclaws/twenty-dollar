@@ -3,10 +3,10 @@ import { getOutboxCount, drainOutboxNow } from '~/lib/server-first'
 
 export type SyncStatus = 'connected' | 'syncing' | 'offline' | 'error' | 'reconnecting'
 
-const [syncStatus, setSyncStatus] = createSignal<SyncStatus>('offline')
+const [syncStatus, setSyncStatus] = createSignal<SyncStatus>('syncing')
 const [lastSynced, setLastSynced] = createSignal<string>('')
 const [pendingCount, setPendingCount] = createSignal(0)
-const [displayStatus, setDisplayStatus] = createSignal<SyncStatus>('offline')
+const [displayStatus, setDisplayStatus] = createSignal<SyncStatus>('syncing')
 
 export function useSyncStatus() {
   return { syncStatus, lastSynced, pendingCount }
