@@ -177,5 +177,29 @@ pub fn run_migrations(conn: &Connection) -> Result<(), rusqlite::Error> {
         conn.execute_batch("ALTER TABLE transactions ADD COLUMN source TEXT DEFAULT 'manual';")?;
     }
 
+    let has_payee_id: bool = conn.prepare("SELECT payee_id FROM transactions LIMIT 0")
+        .is_ok();
+    if !has_payee_id {
+        conn.execute_batch("ALTER TABLE transactions ADD COLUMN payee_id TEXT;")?;
+    }
+
+    let has_linked_id: bool = conn.prepare("SELECT linked_id FROM transactions LIMIT 0")
+        .is_ok();
+    if !has_linked_id {
+        conn.execute_batch("ALTER TABLE transactions ADD COLUMN linked_id TEXT;")?;
+    }
+
+    let has_reconciled_at: bool = conn.prepare("SELECT reconciled_at FROM transactions LIMIT 0")
+        .is_ok();
+    if !has_reconciled_at {
+        conn.execute_batch("ALTER TABLE transactions ADD COLUMN reconciled_at TEXT;")?;
+    }
+
+    let has_schedule_id: bool = conn.prepare("SELECT schedule_id FROM transactions LIMIT 0")
+        .is_ok();
+    if !has_schedule_id {
+        conn.execute_batch("ALTER TABLE transactions ADD COLUMN schedule_id TEXT;")?;
+    }
+
     Ok(())
 }
