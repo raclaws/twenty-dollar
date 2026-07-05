@@ -301,6 +301,7 @@
   text-align: right;
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -319,7 +320,8 @@
   transition: background var(--dur-fast) var(--ease);
 }
 
-.budget-row:hover {
+.budget-row:hover,
+.budget-row:focus-within {
   background: var(--c-surface0);
 }
 
@@ -410,6 +412,7 @@
   text-align: right;
   font-family: var(--font-mono);
   font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -203,10 +203,7 @@ function Sidebar() {
     return rta < 0 ? Math.abs(rta) : 0
   })
 
-  const rtaDisplay = createMemo(() => {
-    const rta = budgetStore.rta()
-    return rta > 0 ? rta : 0
-  })
+  const rtaDisplay = createMemo(() => budgetStore.rta())
 
   const isActive = (path: string) => location.pathname === path
 
@@ -218,7 +215,7 @@ function Sidebar() {
           onClick={() => { navigate('/?action=assign-rta') }}
           style={{ cursor: 'pointer' }}
         >
-          <span class="sidebar__rta-amount">{formatMoneyUnsigned(rtaDisplay())}</span>
+          <span class="sidebar__rta-amount">{rtaDisplay() < 0 ? `-${formatMoneyUnsigned(rtaDisplay())}` : formatMoneyUnsigned(rtaDisplay())}</span>
           <span class="sidebar__rta-label">Ready to Assign</span>
         </div>
         <div class="sidebar__counters">

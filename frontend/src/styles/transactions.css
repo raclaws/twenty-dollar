@@ -126,8 +126,8 @@
 .cell-placeholder { color: var(--c-overlay0); font-style: italic; font-size: var(--fs-sm); }
 .txn-row__category { width: 130px; font-size: var(--fs-md); color: var(--c-subtext0); white-space: nowrap; position: relative; overflow: visible; }
 .txn-row__memo { width: 40px; font-size: var(--fs-sm); color: var(--c-overlay0); overflow: visible; }
-.txn-row__amount { width: 130px; min-width: 130px; max-width: 130px; text-align: right; font-family: var(--font-mono); font-size: var(--fs-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; justify-content: flex-end; }
-.txn-row__balance { width: 130px; min-width: 130px; max-width: 130px; text-align: right; font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--c-subtext0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; justify-content: flex-end; }
+.txn-row__amount { width: 130px; min-width: 130px; max-width: 130px; text-align: right; font-family: var(--font-mono); font-size: var(--fs-md); font-weight: var(--fw-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; justify-content: flex-end; }
+.txn-row__balance { width: 130px; min-width: 130px; max-width: 130px; text-align: right; font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--c-subtext0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; justify-content: flex-end; }
 .txn-row__balance--uncleared { color: var(--c-overlay0); font-style: italic; }
 .txn-row__status { width: 50px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .txn-row__status-dot {

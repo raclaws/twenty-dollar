@@ -17,13 +17,6 @@ function formatMoney(amount: number) {
   return amount < 0 ? `-${formatted}` : formatted
 }
 
-function targetColor(funded: number | null) {
-  if (funded === null) return 'var(--c-surface1)'
-  if (funded >= 1) return 'var(--c-positive)'
-  if (funded > 0) return 'var(--c-warning)'
-  return 'var(--c-negative)'
-}
-
 function availabilityColor(available: number, assigned: number) {
   if (available <= 0) return 'var(--c-negative)'
   if (assigned === 0) return 'var(--c-surface1)'
@@ -32,233 +25,286 @@ function availabilityColor(available: number, assigned: number) {
   return 'var(--c-warning)'
 }
 
+function targetColor(funded: number | null) {
+  if (funded === null) return 'var(--c-overlay0)'
+  if (funded >= 1) return 'var(--c-overlay0)'
+  if (funded > 0) return 'var(--c-warning)'
+  return 'var(--c-negative)'
+}
+
+function fundedPct(funded: number | null): string {
+  if (funded === null) return '—'
+  return `${Math.round(funded * 100)}%`
+}
+
+function availPct(available: number, assigned: number): string {
+  if (assigned === 0) return '—'
+  return `${Math.round((available / assigned) * 100)}%`
+}
+
+function statusText(row: typeof SAMPLE_DATA[0]): string {
+  if (row.available <= 0 && row.activity < 0) return 'Overspent'
+  if (row.funded !== null && row.funded < 1) return 'Underfunded'
+  if (row.assigned === 0) return 'No budget'
+  if (row.available <= 0) return 'Spent'
+  const ratio = row.available / row.assigned
+  if (ratio < 0.3) return 'Running low'
+  return 'On track'
+}
+
+const DesignSample: Component = () => {
+  const [mode, setMode] = createSignal<'dense' | 'default' | 'text'>('default')
+
+  const cellRight = { 'text-align': 'right' as const, 'font-family': 'var(--font-mono)', 'font-size': 'var(--fs-sm)', 'font-weight': '500' }
+
+  return (
+    <div style={{ padding: '32px', background: 'var(--c-base)', 'min-height': '100vh', 'font-family': 'var(--font)' }}>
+      <h1 style={{ color: 'var(--c-text)', 'font-size': 'var(--fs-xl)', 'margin-bottom': '8px' }}>Density Comparison</h1>
+
+      {/* Mode toggle */}
+      <div style={{ display: 'flex', gap: '8px', 'margin-bottom': '24px' }}>
+        <button
+          style={{ padding: '6px 12px', background: mode() === 'dense' ? 'var(--c-interactive)' : 'var(--c-surface0)', color: mode() === 'dense' ? '#fff' : 'var(--c-text)', border: 'none', 'border-radius': '2px', cursor: 'pointer', 'font-size': 'var(--fs-sm)' }}
+          onClick={() => setMode('dense')}
+        >Dense (numbers only)</button>
+        <button
+          style={{ padding: '6px 12px', background: mode() === 'default' ? 'var(--c-interactive)' : 'var(--c-surface0)', color: mode() === 'default' ? '#fff' : 'var(--c-text)', border: 'none', 'border-radius': '2px', cursor: 'pointer', 'font-size': 'var(--fs-sm)' }}
+          onClick={() => setMode('default')}
+        >Default (icons + numbers)</button>
+        <button
+          style={{ padding: '6px 12px', background: mode() === 'text' ? 'var(--c-interactive)' : 'var(--c-surface0)', color: mode() === 'text' ? '#fff' : 'var(--c-text)', border: 'none', 'border-radius': '2px', cursor: 'pointer', 'font-size': 'var(--fs-sm)' }}
+          onClick={() => setMode('text')}
+        >Text (all words)</button>
+      </div>
+
+      {/* Table */}
+      <div style={{ background: 'var(--c-base)', overflow: 'hidden', 'max-width': '960px' }}>
+
+        {/* ═══ DENSE MODE ═══ numbers only, color = status */}
+        {mode() === 'dense' && (
+          <div>
+            <div style={{
+              display: 'grid',
+              'grid-template-columns': '1fr 100px 100px 100px 80px 50px',
+              height: '32px',
+              'align-items': 'center',
+              padding: '0 12px',
+              background: 'var(--c-mantle)',
+              'font-size': '11px',
+              'font-weight': '600',
+              color: 'var(--c-overlay0)',
+              'letter-spacing': '0.5px',
+              'text-transform': 'uppercase',
+            }}>
+              <div>Category</div>
+              <div style={{ 'text-align': 'right' }}>Assigned</div>
+              <div style={{ 'text-align': 'right' }}>Activity</div>
+              <div style={{ 'text-align': 'right' }}>Available</div>
+              <div style={{ 'text-align': 'right' }}>Target</div>
+              <div style={{ 'text-align': 'right' }}>%</div>
+            </div>
+            <For each={SAMPLE_DATA}>
+              {(row) => {
+                const avlColor = availabilityColor(row.available, row.assigned)
+                const tgtColor = targetColor(row.funded)
+                return (
+                  <div style={{
+                    display: 'grid',
+                    'grid-template-columns': '1fr 100px 100px 100px 80px 50px',
+                    height: '36px',
+                    'align-items': 'center',
+                    padding: '0 12px',
+                    transition: 'background 100ms ease',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--c-surface0)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = ''}
+                  >
+                    <div style={{ color: 'var(--c-text)', 'font-size': 'var(--fs-sm)', 'white-space': 'nowrap', overflow: 'hidden' }}>{row.name}</div>
+                    <div style={{ ...cellRight, color: 'var(--c-text)' }}>{formatMoney(row.assigned)}</div>
+                    <div style={{ ...cellRight, color: 'var(--c-subtext0)' }}>{formatMoney(row.activity)}</div>
+                    <div style={{ ...cellRight, color: avlColor }}>{formatMoney(row.available)}</div>
+                    <div style={{ ...cellRight, color: tgtColor }}>{row.target ? formatMoney(row.target) : '—'}</div>
+                    <div style={{ ...cellRight, color: tgtColor, 'font-size': '11px' }}>{fundedPct(row.funded)}</div>
+                  </div>
+                )
+              }}
+            </For>
+          </div>
+        )}
+
+        {/* ═══ DEFAULT MODE ═══ icons + numbers (current design) */}
+        {mode() === 'default' && (
+          <div>
+            <div style={{
+              display: 'grid',
+              'grid-template-columns': '1fr 110px 110px 110px 70px 60px',
+              height: '32px',
+              'align-items': 'center',
+              padding: '0 12px',
+              background: 'var(--c-mantle)',
+              'font-size': '11px',
+              'font-weight': '600',
+              color: 'var(--c-overlay0)',
+              'letter-spacing': '0.5px',
+              'text-transform': 'uppercase',
+            }}>
+              <div>Category</div>
+              <div style={{ 'text-align': 'right' }}>Assigned</div>
+              <div style={{ 'text-align': 'right' }}>Activity</div>
+              <div style={{ 'text-align': 'right' }}>Available</div>
+              <div style={{ 'text-align': 'right' }}>Target</div>
+              <div style={{ 'text-align': 'center' }}>Health</div>
+            </div>
+            <For each={SAMPLE_DATA}>
+              {(row) => {
+                const avlColor = availabilityColor(row.available, row.assigned)
+                const tgtColor = targetColor(row.funded)
+                const sunsetLevel = row.assigned === 0 ? 0 : row.available < 0 ? 0 : Math.min(row.available / row.assigned, 1)
+                return (
+                  <div style={{
+                    display: 'grid',
+                    'grid-template-columns': '1fr 110px 110px 110px 70px 60px',
+                    height: '44px',
+                    'align-items': 'center',
+                    padding: '0 12px',
+                    transition: 'background 100ms ease',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--c-surface0)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = ''}
+                  >
+                    <div style={{ display: 'flex', 'align-items': 'center', gap: '8px', overflow: 'hidden' }}>
+                      <TargetDot funded={row.funded} />
+                      <span style={{ color: 'var(--c-text)', 'font-size': 'var(--fs-md)', 'white-space': 'nowrap' }}>{row.name}</span>
+                    </div>
+                    <div style={{ ...cellRight, color: 'var(--c-text)' }}>{formatMoney(row.assigned)}</div>
+                    <div style={{ ...cellRight, color: 'var(--c-subtext0)' }}>{formatMoney(row.activity)}</div>
+                    <div style={{ ...cellRight, color: avlColor }}>{formatMoney(row.available)}</div>
+                    <div style={{ ...cellRight, color: tgtColor, 'font-size': '11px' }}>{fundedPct(row.funded)}</div>
+                    <div style={{ display: 'flex', 'justify-content': 'center' }}>
+                      <SunsetCircle level={sunsetLevel} color={avlColor} size={18} />
+                    </div>
+                  </div>
+                )
+              }}
+            </For>
+          </div>
+        )}
+
+        {/* ═══ TEXT MODE ═══ all words, no numbers */}
+        {mode() === 'text' && (
+          <div>
+            <div style={{
+              display: 'grid',
+              'grid-template-columns': '1fr 120px 120px',
+              height: '32px',
+              'align-items': 'center',
+              padding: '0 12px',
+              background: 'var(--c-mantle)',
+              'font-size': '11px',
+              'font-weight': '600',
+              color: 'var(--c-overlay0)',
+              'letter-spacing': '0.5px',
+              'text-transform': 'uppercase',
+            }}>
+              <div>Category</div>
+              <div>Target</div>
+              <div>Status</div>
+            </div>
+            <For each={SAMPLE_DATA}>
+              {(row) => {
+                const avlColor = availabilityColor(row.available, row.assigned)
+                const tgtColor = targetColor(row.funded)
+                const status = statusText(row)
+                const targetLabel = row.target
+                  ? row.funded !== null && row.funded >= 1 ? 'Funded' : `${fundedPct(row.funded)} funded`
+                  : 'No target'
+                return (
+                  <div style={{
+                    display: 'grid',
+                    'grid-template-columns': '1fr 120px 120px',
+                    height: '44px',
+                    'align-items': 'center',
+                    padding: '0 12px',
+                    transition: 'background 100ms ease',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--c-surface0)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = ''}
+                  >
+                    <div style={{ display: 'flex', 'flex-direction': 'column', gap: '1px' }}>
+                      <span style={{ color: 'var(--c-text)', 'font-size': 'var(--fs-md)' }}>{row.name}</span>
+                      <span style={{ color: 'var(--c-overlay0)', 'font-size': '12px' }}>
+                        {formatMoney(row.assigned)} budgeted
+                      </span>
+                    </div>
+                    <div style={{ color: tgtColor, 'font-size': 'var(--fs-sm)' }}>{targetLabel}</div>
+                    <div style={{ color: avlColor, 'font-size': 'var(--fs-sm)', 'font-weight': '500' }}>{status}</div>
+                  </div>
+                )
+              }}
+            </For>
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div style={{ 'max-width': '960px', 'margin-top': '24px', padding: '16px', background: 'var(--c-surface0)', 'border-radius': '2px' }}>
+        <div style={{ display: 'flex', gap: '32px', 'font-size': 'var(--fs-sm)', color: 'var(--c-subtext0)' }}>
+          <div style={{ flex: '1' }}>
+            <div style={{ 'font-weight': '600', color: 'var(--c-text)', 'margin-bottom': '4px' }}>Dense</div>
+            <div>36px rows. Pure numbers. Color = status.</div>
+            <div>6 columns. No icons. Maximum data density.</div>
+            <div style={{ color: 'var(--c-overlay0)', 'margin-top': '4px' }}>Best for: power users, 20+ categories visible</div>
+          </div>
+          <div style={{ flex: '1' }}>
+            <div style={{ 'font-weight': '600', color: 'var(--c-text)', 'margin-bottom': '4px' }}>Default</div>
+            <div>44px rows. Target dot + sunset circle.</div>
+            <div>Numbers + visual indicators. Balanced.</div>
+            <div style={{ color: 'var(--c-overlay0)', 'margin-top': '4px' }}>Best for: daily use, quick scan + edit</div>
+          </div>
+          <div style={{ flex: '1' }}>
+            <div style={{ 'font-weight': '600', color: 'var(--c-text)', 'margin-bottom': '4px' }}>Text</div>
+            <div>44px rows. Natural language status.</div>
+            <div>No mental math. "On track" / "Running low".</div>
+            <div style={{ color: 'var(--c-overlay0)', 'margin-top': '4px' }}>Best for: casual glance, mobile, new users</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Minimal target dot — 8px circle, inline with name
+function TargetDot(props: { funded: number | null }) {
+  const color = targetColor(props.funded)
+  const filled = props.funded !== null && props.funded > 0
+  return (
+    <svg width={8} height={8} viewBox="0 0 8 8" style={{ 'flex-shrink': '0' }}>
+      {filled
+        ? <circle cx={4} cy={4} r={3.5} fill={color} />
+        : <circle cx={4} cy={4} r={3} fill="none" stroke={color} stroke-width={1.5} stroke-dasharray={props.funded === null ? '2 2' : '0'} />
+      }
+    </svg>
+  )
+}
+
+let sunsetCounter = 0
 function SunsetCircle(props: { level: number; color: string; size?: number }) {
+  const id = `clip-sunset-${sunsetCounter++}`
   const s = props.size ?? 22
   const fillH = Math.max(0, Math.min(1, props.level)) * s
   return (
     <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`}>
       <defs>
-        <clipPath id={`clip-sunset-${Math.round(props.level * 1000)}-${s}`}>
+        <clipPath id={id}>
           <circle cx={s/2} cy={s/2} r={s/2} />
         </clipPath>
       </defs>
       <circle cx={s/2} cy={s/2} r={s/2} fill="var(--c-surface0)" />
-      <rect
-        x={0} y={s - fillH} width={s} height={fillH}
-        fill={props.color}
-        clip-path={`url(#clip-sunset-${Math.round(props.level * 1000)}-${s})`}
-        opacity={0.85}
-      />
+      <rect x={0} y={s - fillH} width={s} height={fillH} fill={props.color} clip-path={`url(#${id})`} />
     </svg>
-  )
-}
-
-function TargetRing(props: { progress: number; color: string; size?: number }) {
-  const s = props.size ?? 22
-  const r = (s - 4) / 2
-  const circumference = 2 * Math.PI * r
-  const filled = Math.max(0, Math.min(1, props.progress)) * circumference
-  const gap = circumference - filled
-  return (
-    <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={{ transform: 'rotate(-90deg)' }}>
-      <circle cx={s/2} cy={s/2} r={r} fill="none" stroke="var(--c-surface0)" stroke-width={3} />
-      <circle cx={s/2} cy={s/2} r={r} fill="none" stroke={props.color} stroke-width={3}
-        stroke-dasharray={`${filled} ${gap}`}
-        stroke-linecap="butt"
-      />
-    </svg>
-  )
-}
-
-const DesignSample: Component = () => {
-  const [showAmounts, setShowAmounts] = createSignal(true)
-
-  return (
-    <div style={{ padding: '32px', background: 'var(--c-base)', 'min-height': '100vh', 'font-family': 'var(--font)' }}>
-      <h1 style={{ color: 'var(--c-text)', 'font-size': 'var(--fs-xl)', 'margin-bottom': '8px' }}>Design Sample — Budget Table</h1>
-      <p style={{ color: 'var(--c-overlay0)', 'font-size': 'var(--fs-sm)', 'margin-bottom': '24px' }}>
-        Click ◂/▸ to toggle amounts. Ring = target funded %. Sunset = availability remaining.
-        <br />Colors independent: ring = planning health, sunset = spending health. No overlap.
-      </p>
-
-      {/* Table */}
-      <div style={{ background: 'var(--c-base)', 'border-radius': '2px', overflow: 'hidden', 'max-width': '900px' }}>
-        {/* Header */}
-        <div style={{
-          display: 'flex',
-          'align-items': 'center',
-          height: '32px',
-          padding: '0 12px',
-          background: 'var(--c-mantle)',
-          'font-size': 'var(--fs-xs)',
-          'font-weight': '600',
-          color: 'var(--c-overlay0)',
-          'letter-spacing': '0.5px',
-          'text-transform': 'uppercase',
-        }}>
-          <div style={{ flex: '1', 'min-width': '180px' }}>Category</div>
-          {showAmounts() && (
-            <div style={{ display: 'flex' }}>
-              <div style={{ width: '120px', 'text-align': 'right' }}>Assigned</div>
-              <div style={{ width: '120px', 'text-align': 'right' }}>Activity</div>
-              <div style={{ width: '120px', 'text-align': 'right' }}>Available</div>
-            </div>
-          )}
-          <div style={{ display: 'flex', 'align-items': 'center', gap: '12px', width: '80px', 'justify-content': 'center' }}>
-            <span style={{ 'font-size': '9px', color: 'var(--c-overlay0)' }}>TGT</span>
-            <span style={{ 'font-size': '9px', color: 'var(--c-overlay0)' }}>AVL</span>
-          </div>
-          <div
-            style={{
-              width: '24px',
-              'text-align': 'center',
-              cursor: 'pointer',
-              color: 'var(--c-positive)',
-              'user-select': 'none',
-              'font-size': 'var(--fs-sm)',
-            }}
-            onClick={() => setShowAmounts(!showAmounts())}
-            title={showAmounts() ? 'Hide amounts' : 'Show amounts'}
-          >
-            {showAmounts() ? '◂' : '▸'}
-          </div>
-        </div>
-
-        {/* Group Header — bg fill bar as progress indicator */}
-        {(() => {
-          const groupAssigned = SAMPLE_DATA.reduce((s, r) => s + r.assigned, 0)
-          const groupActivity = SAMPLE_DATA.reduce((s, r) => s + r.activity, 0)
-          const groupAvailable = SAMPLE_DATA.reduce((s, r) => s + r.available, 0)
-          const groupFillPct = groupAssigned > 0 ? Math.max(0, Math.min(1, groupAvailable / groupAssigned)) : 0
-          const groupColor = availabilityColor(groupAvailable, groupAssigned)
-          return (
-            <div style={{
-              position: 'relative',
-              display: 'flex',
-              'align-items': 'center',
-              height: '40px',
-              padding: '0 12px',
-              overflow: 'hidden',
-              'font-weight': '700',
-              color: 'var(--c-text)',
-              'font-size': 'var(--fs-sm)',
-            }}>
-              {/* Background fill bar */}
-              <div style={{
-                position: 'absolute',
-                left: '0',
-                top: '0',
-                height: '100%',
-                width: `${groupFillPct * 100}%`,
-                background: groupColor,
-                opacity: '0.15',
-                transition: 'width 300ms ease',
-              }} />
-              {/* Content on top */}
-              <div style={{ flex: '1', 'min-width': '180px', 'z-index': '1' }}>Needs</div>
-              {showAmounts() && (
-                <div style={{ display: 'flex', 'font-family': 'var(--font-mono)', 'z-index': '1' }}>
-                  <div style={{ width: '120px', 'text-align': 'right' }}>{formatMoney(groupAssigned)}</div>
-                  <div style={{ width: '120px', 'text-align': 'right' }}>{formatMoney(groupActivity)}</div>
-                  <div style={{ width: '120px', 'text-align': 'right', color: groupColor }}>{formatMoney(groupAvailable)}</div>
-                </div>
-              )}
-              <div style={{ width: '80px', 'z-index': '1' }} />
-              <div style={{ width: '24px', 'z-index': '1' }} />
-            </div>
-          )
-        })()}
-
-        {/* Rows */}
-        <For each={SAMPLE_DATA}>
-          {(row) => {
-            const tgtColor = () => targetColor(row.funded)
-            const avlColor = () => availabilityColor(row.available, row.assigned)
-            const targetFill = () => row.funded ?? 0
-            const sunsetLevel = () => {
-              if (row.available < 0) return 0
-              if (row.assigned === 0) return 0
-              return Math.min(row.available / row.assigned, 1)
-            }
-
-            return (
-              <div style={{
-                display: 'flex',
-                'align-items': 'center',
-                height: '44px',
-                padding: '0 12px',
-                background: 'var(--c-base)',
-                transition: 'background 100ms ease',
-                cursor: 'pointer',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--c-surface0)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'var(--c-base)'}
-              >
-                {/* Category — left */}
-                <div style={{ flex: '1', 'min-width': '180px', overflow: 'hidden' }}>
-                  <div style={{ color: 'var(--c-text)', 'font-size': 'var(--fs-md)' }}>{row.name}</div>
-                  {row.target && (
-                    <div style={{ 'font-size': 'var(--fs-xs)', color: 'var(--c-overlay0)', 'margin-top': '1px' }}>
-                      {row.funded !== null && row.funded >= 1
-                        ? `${formatMoney(row.target)} — ${row.targetType}`
-                        : `${formatMoney(row.target - (row.funded ?? 0) * row.target)} more — ${row.targetType}`
-                      }
-                    </div>
-                  )}
-                </div>
-
-                {/* Amounts — middle (only when shown) */}
-                {showAmounts() && (
-                  <div style={{ display: 'flex', 'font-family': 'var(--font-mono)', 'font-size': 'var(--fs-md)' }}>
-                    <div style={{ width: '120px', 'text-align': 'right', color: 'var(--c-text)' }}>
-                      {formatMoney(row.assigned)}
-                    </div>
-                    <div style={{ width: '120px', 'text-align': 'right', color: 'var(--c-subtext0)' }}>
-                      {formatMoney(row.activity)}
-                    </div>
-                    <div style={{ width: '120px', 'text-align': 'right', 'font-weight': '500', color: avlColor() }}>
-                      {formatMoney(row.available)}
-                    </div>
-                  </div>
-                )}
-
-                {/* Circles — own column, always visible, aligned */}
-                <div style={{ display: 'flex', gap: '8px', width: '80px', 'flex-shrink': '0', 'justify-content': 'center', 'align-items': 'center' }}>
-                  <TargetRing progress={targetFill()} color={tgtColor()} size={22} />
-                  <SunsetCircle level={sunsetLevel()} color={avlColor()} size={22} />
-                </div>
-
-                {/* Toggle spacer */}
-                <div style={{ width: '24px' }} />
-              </div>
-            )
-          }}
-        </For>
-      </div>
-
-      {/* Legend */}
-      <div style={{ 'max-width': '900px', 'margin-top': '24px', padding: '16px', background: 'var(--c-surface0)', 'border-radius': '2px' }}>
-        <div style={{ display: 'flex', gap: '32px', 'font-size': 'var(--fs-sm)', color: 'var(--c-subtext0)' }}>
-          <div style={{ flex: '1' }}>
-            <div style={{ 'font-weight': '600', color: 'var(--c-text)', 'margin-bottom': '8px' }}>◔ Target Ring (planning)</div>
-            <div>Fill = assigned / target (how much of goal is funded)</div>
-            <div style={{ 'margin-top': '4px' }}>Color:</div>
-            <div style={{ color: 'var(--c-positive)', 'margin-top': '2px' }}>● Green — fully funded (assigned ≥ target)</div>
-            <div style={{ color: 'var(--c-warning)', 'margin-top': '2px' }}>● Yellow — partially funded (0 &lt; assigned &lt; target)</div>
-            <div style={{ color: 'var(--c-negative)', 'margin-top': '2px' }}>● Red — unfunded (assigned = 0, target exists)</div>
-            <div style={{ color: 'var(--c-overlay0)', 'margin-top': '2px' }}>● Grey — no target set</div>
-          </div>
-          <div style={{ flex: '1' }}>
-            <div style={{ 'font-weight': '600', color: 'var(--c-text)', 'margin-bottom': '8px' }}>◕ Sunset Circle (execution)</div>
-            <div>Fill = available / assigned (what's left to spend)</div>
-            <div style={{ 'margin-top': '4px' }}>Color:</div>
-            <div style={{ color: 'var(--c-positive)', 'margin-top': '2px' }}>● Green — comfortable (≥30% remaining)</div>
-            <div style={{ color: 'var(--c-warning)', 'margin-top': '2px' }}>● Yellow — running low (&lt;30% remaining)</div>
-            <div style={{ color: 'var(--c-negative)', 'margin-top': '2px' }}>● Red — overspent (available ≤ 0)</div>
-          </div>
-        </div>
-      </div>
-    </div>
   )
 }
 
