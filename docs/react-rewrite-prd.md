@@ -230,48 +230,81 @@ Same strategy as current (fire-and-forget), with better UX signals:
 
 Offline queue: IndexedDB writes succeed immediately. REST calls go to a queue. On reconnect, flush queue in order.
 
-## Phase Plan
+## Phase Plan (v2 — revised 2026-07-05)
 
-### Phase 1: Shell + Auth + Sync (Day 1-2)
-- Vite + React + Tailwind + TanStack Router
-- Tailwind config (Catppuccin Mocha tokens as CSS vars + Tailwind colors)
+### Phase 1: Shell + Auth + Sync ✅ DONE
+- Vite + React 19 + Tailwind 4 + TanStack Router
+- Dark neon tokens (CSS vars → Tailwind @theme bridge)
 - Layout shell: bottom tabs (mobile) + sidebar (desktop)
-- Port sync-engine to React hooks
-- Auth flow (login, setup, session check)
-- **Gate:** can login, IndexedDB loads, sync indicator works
+- Sync engine ported (IDB store, reactive layer via useSyncExternalStore, sync-manager with Option A)
+- Auth flow (login, setup, background validation, localStorage cache)
+- Budget engine (computeBudget pure function + useBudget hook)
+- Format utilities, store config, TABLE_TO_ENDPOINT mapping
 
-### Phase 2: Budget View Mobile (Day 3-4)
-- Month navigation (horizontal swipe/arrows)
-- Group cards (collapsible)
-- Category cards (icon, name, available, progress bar)
-- Ready to Assign header
-- Tap to expand → inline edit (assigned amount)
-- Move Budget action (picker for from/to category)
-- **Gate:** can view budget, assign money, see targets
+### Phase 2: Core Views (Mobile) ✅ DONE
+- Budget: month nav, RTA badge, collapsible groups, category cards, progress bars, tap-to-expand inline assignment
+- Transactions: card list grouped by date, account filter, add transaction form (full-screen)
+- Accounts: cards with balance, type icons, create account with starting balance
 
-### Phase 3: Transactions Mobile (Day 5-6)
-- Transaction card list (grouped by date)
-- Add transaction (full-screen form with pickers)
-- Edit inline (tap to expand)
-- Swipe to delete (with undo)
-- Filter pills (account, category, date range)
-- **Gate:** can add/edit/delete transactions, filters work
+### Phase 3: Interaction Layer (NEXT)
+This is the critical gap — views exist but lack the interaction depth of the Solid version.
 
-### Phase 4: Desktop Views (Day 7-8)
-- Budget grid (table layout, tables R&D components)
-- Transaction table (sortable, keyboard nav)
-- Account sidebar
-- Responsive breakpoint testing
-- **Gate:** desktop matches current Solid version's functionality
+**3A: Context Menus + CRUD**
+- Context menu component (Radix Popover, triggered by long-press mobile / right-click desktop)
+- Category: rename, delete, move to group, set icon
+- Category group: rename, delete, add category, set icon, reorder
+- Transaction: edit, delete, mark cleared, duplicate
+- Account: rename, close/reopen, set icon
 
-### Phase 5: Polish + PWA (Day 9-10)
-- PWA install prompt
-- Offline queue visualization
-- Transitions/animations (page transitions, card expand, sheet slide)
-- Import (CSV) + Export (JSON)
+**3B: Inline Editing**
+- Transaction fields: tap any field → inline edit (payee, category, amount, date, memo)
+- Category row: tap name → rename
+- Account: tap name → rename
+- Use EntityPicker (cmdk) for payee/category fields
+- DatePicker (port from Solid — custom calendar)
+
+**3C: Undo System**
+- Zustand undo stack (operation description + undo/redo functions)
+- Toast (sonner) with "Undo" action on destructive operations
+- Ctrl+Z / Cmd+Z global keyboard shortcut
+- Operations: delete, assign, move budget, create, rename
+
+**3D: Move Budget Dialog**
+- From/to category picker
+- Amount input
+- "Cover overspent" quick action on category context menu
+
+**3E: Target Dialog**
+- Set/edit target on categories (monthly, by_date, savings)
+- Target amount + optional target date
+- Delete target
+
+**Gate:** Can right-click any entity → full CRUD. Can inline edit transactions. Undo works for all mutations.
+
+### Phase 4: Desktop Table Views
+- Budget grid: column layout (density modes: dense/default/text), sortable, keyboard nav
+- Transaction table: columns (date, account, payee, category, amount, balance), sortable, inline editing, bulk selection
+- Responsive breakpoint: card layout → table layout at md:
+
+**Gate:** Desktop matches Solid version's table density and keyboard nav.
+
+### Phase 5: Advanced Interactions
+- Keyboard shortcuts: Ctrl+N (new txn), Ctrl+Z (undo), Escape (close), Enter (submit)
+- Bulk transaction selection + bulk actions (categorize, delete, clear)
+- Swipe-to-delete on mobile (transactions, with undo)
+- Drag reorder (categories within group, groups)
+- Pull-to-refresh → re-hydrate
+
+**Gate:** All Solid version keyboard/gesture interactions work.
+
+### Phase 6: Remaining Features
+- Import view (port tx-parser: PDF/CSV/paste)
+- Settings page (currency picker, reset data)
 - Scheduled transactions
-- Settings page
-- **Gate:** feature parity with current Solid version
+- PWA install prompt + offline queue visualization
+- Transitions/animations (sheet slide, card expand, page transitions)
+
+**Gate:** Full feature parity with Solid version + mobile UX.
 
 ## Ceiling Statement
 
