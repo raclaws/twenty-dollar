@@ -29,8 +29,8 @@ export function createReactiveLayer(store: import('./types').SyncStore): Reactiv
       const listeners: Set<Listener<Record[]>> = new Set()
       let initialized = false
 
-      async function refresh() {
-        current = await store.query(table, options)
+      function refresh() {
+        current = store.query(table, options)
         for (const fn of listeners) fn(current)
       }
 
@@ -70,7 +70,6 @@ export function createReactiveLayer(store: import('./types').SyncStore): Reactiv
     notify(table: string) {
       const subs = subscriptions.get(table)
       if (!subs) return
-      // Batch notifications within a frame
       queueMicrotask(() => {
         for (const fn of subs) fn()
       })

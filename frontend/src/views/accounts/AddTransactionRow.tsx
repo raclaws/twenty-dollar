@@ -44,7 +44,10 @@ const AddTransactionRow: Component<AddTransactionRowProps> = (props) => {
   const [isCleared, setIsCleared] = createSignal(false)
   const [isSplit, setIsSplit] = createSignal(false)
   const [splits, setSplits] = createSignal<SplitLine[]>([{ categoryId: '', amount: '', memo: '' }])
+  const [isRecurring, setIsRecurring] = createSignal(false)
+  const [frequency, setFrequency] = createSignal<string>('monthly')
   const [errors, setErrors] = createSignal<Record<string, string>>({})
+  const [submitting, setSubmitting] = createSignal(false)
 
   const knownPayees = createMemo(() => {
     return payees().filter(p => (p.type as string) === 'external').map(p => ({ id: p.id as string, name: p.name as string }))
@@ -143,11 +146,12 @@ const AddTransactionRow: Component<AddTransactionRowProps> = (props) => {
     setIsCleared(false)
     setIsSplit(false)
     setSplits([{ categoryId: '', amount: '', memo: '' }])
+    setIsRecurring(false)
+    setFrequency('monthly')
     setErrors({})
   }
 
   function resetForAddMore() {
-    // Keep the date, reset everything else
     setShowDatePicker(false)
     setPayeeId(null)
     setPayeeLabel('')
@@ -161,11 +165,15 @@ const AddTransactionRow: Component<AddTransactionRowProps> = (props) => {
     setIsCleared(false)
     setIsSplit(false)
     setSplits([{ categoryId: '', amount: '', memo: '' }])
+    setIsRecurring(false)
+    setFrequency('monthly')
     setErrors({})
   }
 
   async function handleSubmit() {
+    if (submitting()) return
     if (!validate()) return
+    setSubmitting(true)
 
     const rawAmount = parseMoney(amountInput())!
     const amount = isOutflow() ? -Math.abs(rawAmount) : Math.abs(rawAmount)
@@ -246,6 +254,7 @@ const AddTransactionRow: Component<AddTransactionRowProps> = (props) => {
       })
 
       if (addMore()) { resetForAddMore() } else { closeDialog() }
+      setSubmitting(false)
       return
     }
 
@@ -314,6 +323,21 @@ const AddTransactionRow: Component<AddTransactionRowProps> = (props) => {
       },
     })
 
+    if (isRecurring()) {
+      apiPost('/api/schedules', {
+        account_id: props.accountId,
+        category_id: isSplit() ? null : (categoryId() || null),
+        payee: payeeLabel() || null,
+        amount,
+        memo: memo() || null,
+        frequency: frequency(),
+        next_due: date(),
+        end_date: null,
+        auto_clear: isCleared(),
+      }).catch(() => {})
+    }
+
+    setSubmitting(false)
     if (addMore()) { resetForAddMore() } else { closeDialog() }
   }
 
@@ -324,10 +348,15 @@ const AddTransactionRow: Component<AddTransactionRowProps> = (props) => {
       if (!isOpen()) openDialog()
     }
     if (e.key === 'Escape' && isOpen()) {
+      if (submitting()) return
       if (pickerJustClosed || showDatePicker() || showPayeePicker() || showCatPicker()) {
         return
       }
       closeDialog()
+    }
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && isOpen()) {
+      e.preventDefault()
+      handleSubmit()
     }
   }
 
@@ -480,6 +509,21 @@ const AddTransactionRow: Component<AddTransactionRowProps> = (props) => {
                 </div>
               </div>
 
+              {/* Recurring */}
+              <Show when={isRecurring()}>
+                <div class="add-txn-dialog__field">
+                  <label class="add-txn-dialog__label">Frequency</label>
+                  <div class="add-txn-dialog__input-wrap">
+                    <select class="add-txn-dialog__input" value={frequency()} onChange={(e) => setFrequency(e.currentTarget.value)}>
+                      <option value="weekly">Weekly</option>
+                      <option value="biweekly">Every 2 weeks</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="yearly">Yearly</option>
+                    </select>
+                  </div>
+                </div>
+              </Show>
+
               {/* Splits */}
               <Show when={isSplit()}>
                 <div class="add-txn-dialog__splits">
@@ -532,7 +576,12 @@ const AddTransactionRow: Component<AddTransactionRowProps> = (props) => {
                     {isSplit() ? 'Single' : 'Split'}
                   </button>
                 </Show>
-                <button class="btn btn--sm btn--primary" onClick={() => handleSubmit()}>Add ⌘Enter</button>
+                <button class={`btn btn--sm ${isRecurring() ? 'btn--secondary btn--active' : 'btn--secondary'}`} onClick={() => setIsRecurring(!isRecurring())}>
+                  {isRecurring() ? '⟳ Recurring' : '⟳'}
+                </button>
+                <button class="btn btn--sm btn--primary" disabled={submitting()} onClick={() => handleSubmit()}>
+                  {submitting() ? 'Adding...' : 'Add ⌘Enter'}
+                </button>
               </div>
             </div>
           </div>

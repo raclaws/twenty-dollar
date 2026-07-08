@@ -76,20 +76,20 @@ async function buildStore(db: IDBDatabase, config: StoreConfig): Promise<SyncSto
       })
     },
 
-    async get(table, id) {
+    get(table, id) {
       return cache[table].get(id)
     },
 
-    async getAll(table) {
+    getAll(table) {
       return Array.from(cache[table].values())
     },
 
-    async query(table, options?: QueryOptions) {
+    query(table, options?: QueryOptions) {
       const all = Array.from(cache[table].values())
       return applyQuery(all, options)
     },
 
-    async count(table, options?: QueryOptions) {
+    count(table, options?: QueryOptions) {
       if (!options || !options.where) {
         return cache[table].size
       }

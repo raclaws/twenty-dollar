@@ -20,11 +20,10 @@ export default function LoginView() {
   const errors = createMemo(() => {
     const e: Record<string, string> = {}
     if (touched().email && !EMAIL_RE.test(email().trim())) e.email = 'Enter a valid email'
-    if (touched().password && password().length < 6) e.password = 'Min 6 characters'
     return e
   })
 
-  const canSubmit = () => email().trim().length > 0 && password().length >= 6
+  const canSubmit = () => email().trim().length > 0 && password().length > 0
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault()
@@ -91,16 +90,11 @@ export default function LoginView() {
                 placeholder="Password"
                 value={password()}
                 onInput={(e) => setPassword(e.currentTarget.value)}
-                onBlur={() => setTouched(t => ({ ...t, password: true }))}
-                classList={{ 'auth-input--error': !!errors().password }}
               />
               <button type="button" class="auth-pw-toggle" onClick={() => setShowPw(!showPw())} tabIndex={-1}>
                 {showPw() ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
-            <Show when={errors().password}>
-              <span class="auth-field-error">{errors().password}</span>
-            </Show>
           </div>
 
           <Show when={error()}>

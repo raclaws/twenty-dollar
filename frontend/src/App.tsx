@@ -312,7 +312,7 @@ function Sidebar() {
           localStorage.removeItem('user_name')
           localStorage.removeItem('user_email')
           localStorage.removeItem('twenty-dollar:seeded')
-          navigate('/login', { replace: true })
+          window.location.href = '/login'
         }}>Log out</button>
       </div>
     </aside>

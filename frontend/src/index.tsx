@@ -17,6 +17,7 @@ import AccountsView from './views/accounts/AccountsView'
 import TransactionsView from './views/accounts/TransactionsView'
 import SettingsView from './views/settings/SettingsView'
 import ImportView from './views/import/ImportView'
+import YnabImportView from './views/import/YnabImportView'
 import LoginView from './views/auth/LoginView'
 import SetupView from './views/auth/SetupView'
 import DesignSample from './views/DesignSample'
@@ -47,3 +48,5 @@ render(
   ),
   document.getElementById('app')!,
 )
+
+document.getElementById('splash')?.remove()

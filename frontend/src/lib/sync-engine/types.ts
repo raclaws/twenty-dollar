@@ -24,10 +24,10 @@ export type Record = { id: string; [key: string]: unknown }
 export interface SyncStore {
   put(table: string, record: Record): Promise<void>
   putMany(table: string, records: Record[]): Promise<void>
-  get(table: string, id: string): Promise<Record | undefined>
-  getAll(table: string): Promise<Record[]>
-  query(table: string, options?: QueryOptions): Promise<Record[]>
-  count(table: string, options?: QueryOptions): Promise<number>
+  get(table: string, id: string): Record | undefined
+  getAll(table: string): Record[]
+  query(table: string, options?: QueryOptions): Record[]
+  count(table: string, options?: QueryOptions): number
   delete(table: string, id: string): Promise<void>
   clear(table: string): Promise<void>
   close(): void
