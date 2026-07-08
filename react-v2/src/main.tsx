@@ -4,6 +4,7 @@ import { App } from './App';
 import { StoreProvider } from '@/lib/store-context';
 import { rootStore, initializeStores } from '@/stores';
 import './index.css';
+import './components/app.css';
 
 async function bootstrap() {
   await initializeStores();
