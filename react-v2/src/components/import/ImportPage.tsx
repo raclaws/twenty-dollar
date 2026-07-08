@@ -1,231 +1,538 @@
-import { useState, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useStore } from '@/lib/store-context';
-import { ImportInput } from './ImportInput';
-import { ImportPreview } from './ImportPreview';
-import { toast } from 'sonner';
-import type { Transaction } from '@/types';
+import { Upload, FileText, Check, AlertTriangle, Tag } from 'lucide-react';
+import { parse, type Transaction as ParsedTx } from '@/lib/tx-parser';
+import { extractTextFromPDF } from '@/lib/tx-parser/pdf-extract';
+import { clusterDescriptions, matchAgainstRules, signatureKey, type DescriptionCluster } from '@/lib/tx-parser/clusterer';
+import { formatCurrency } from '@/lib/format';
+import { confirmAction } from '@/components/shared/ConfirmDialog';
+import { EntityPicker, type PickerSection } from '@/components/shared/EntityPicker';
+import { PayeePicker } from '@/components/shared/PayeePicker';
+import { CategoryPicker } from '@/components/shared/CategoryPicker';
 
-export interface ParsedRow {
-  id: string;
-  date: string;
-  description: string;
-  amount: number; // cents
-  selected: boolean;
-  isDuplicate: boolean;
-}
+type ImportState = 'idle' | 'processing' | 'preview' | 'importing' | 'categorize' | 'done';
 
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      inQuotes = !inQuotes;
-    } else if (ch === ',' && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += ch;
-    }
-  }
-  result.push(current.trim());
-  return result;
-}
-
-function detectColumns(headers: string[]): { dateCol: number; descCol: number; amountCol: number } {
-  const lower = headers.map((h) => h.toLowerCase().replace(/[^a-z]/g, ''));
-  let dateCol = lower.findIndex((h) => h.includes('date'));
-  let descCol = lower.findIndex((h) => h.includes('desc') || h.includes('memo') || h.includes('payee') || h.includes('narr'));
-  let amountCol = lower.findIndex((h) => h.includes('amount') || h.includes('sum') || h.includes('value'));
-
-  if (dateCol === -1) dateCol = 0;
-  if (descCol === -1) descCol = dateCol === 0 ? 1 : 0;
-  if (amountCol === -1) amountCol = headers.length - 1;
-
-  return { dateCol, descCol, amountCol };
-}
-
-function parseDate(raw: string): string {
-  // Try ISO format first
-  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
-  // Try MM/DD/YYYY
-  const slash = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
-  if (slash) {
-    const [, m, d, y] = slash;
-    const year = y.length === 2 ? '20' + y : y;
-    return `${year}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-  }
-  // Try DD/MM/YYYY (fallback)
-  const dot = raw.match(/^(\d{1,2})[.\-](\d{1,2})[.\-](\d{2,4})$/);
-  if (dot) {
-    const [, d, m, y] = dot;
-    const year = y.length === 2 ? '20' + y : y;
-    return `${year}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-  }
-  return new Date().toISOString().slice(0, 10);
-}
-
-function parseAmount(raw: string): number {
-  const cleaned = raw.replace(/[$€£,\s]/g, '');
-  const num = parseFloat(cleaned);
-  if (isNaN(num)) return 0;
-  return Math.round(num * 100);
+function dayBefore(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
 }
 
 export const ImportPage = observer(function ImportPage() {
-  const { transactionStore, accountStore } = useStore();
-  const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
+  const { accountStore, transactionStore, payeeStore, categoryStore, importRuleStore, undoStore } = useStore();
+
+  const [state, setState] = useState<ImportState>('idle');
+  const [transactions, setTransactions] = useState<ParsedTx[]>([]);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
   const [accountId, setAccountId] = useState('');
-  const [step, setStep] = useState<'input' | 'preview'>('input');
+  const [showAccountPicker, setShowAccountPicker] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [importCount, setImportCount] = useState(0);
+  const [fileName, setFileName] = useState('');
+  const [clusters, setClusters] = useState<DescriptionCluster[]>([]);
+  const [clusterAssignments, setClusterAssignments] = useState<Map<string, { payeeId: string | null; categoryId: string | null }>>(new Map());
+  const [editingCluster, setEditingCluster] = useState<{ key: string; field: 'payee' | 'category' } | null>(null);
+  const [importedTxIds, setImportedTxIds] = useState<string[]>([]);
+  const [prefilledKeys, setPrefilledKeys] = useState<Set<string>>(new Set());
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const accountTriggerRef = useRef<HTMLDivElement>(null);
 
-  const checkDuplicate = useCallback(
-    (date: string, amount: number): boolean => {
-      const all = Array.from(transactionStore.transactions.values());
-      return all.some((t) => t.date === date && t.amount === amount);
-    },
-    [transactionStore],
-  );
+  const activeAccounts = accountStore.sortedAccounts;
 
-  const handleParse = useCallback(
-    (text: string) => {
-      const lines = text.trim().split(/\r?\n/).filter((l) => l.trim());
-      if (lines.length < 2) {
-        toast.error('Need at least a header row and one data row');
+  const accountSections: PickerSection[] = useMemo(() => [{
+    key: 'accounts',
+    label: 'Account',
+    items: activeAccounts.map(a => ({ id: a.id, label: a.name })),
+  }], [activeAccounts]);
+
+  const selectedAccount = activeAccounts.find(a => a.id === accountId);
+
+  const summary = useMemo(() => {
+    const selectedTxns = transactions.filter((_, i) => selected.has(i));
+    const income = selectedTxns.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
+    const expense = selectedTxns.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0);
+    return { count: selectedTxns.length, income, expense };
+  }, [transactions, selected]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // If navigating away mid-import, we just leave them (server has them)
+    };
+  }, []);
+
+  async function handleFile(file: File) {
+    setState('processing');
+    setError(null);
+    setFileName(file.name);
+
+    try {
+      let text: string;
+      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+        text = await extractTextFromPDF(file);
+      } else {
+        text = await file.text();
+      }
+
+      const txns = parse(text, { contextYear: new Date().getFullYear() });
+      if (txns.length === 0) {
+        setError('No transactions detected in this file.');
+        setState('idle');
         return;
       }
 
-      const headers = parseCSVLine(lines[0]);
-      const { dateCol, descCol, amountCol } = detectColumns(headers);
+      setTransactions(txns);
+      setSelected(new Set(txns.map((_, i) => i)));
+      setState('preview');
+    } catch (err: any) {
+      setError(`Failed to parse file: ${err.message ?? 'unknown error'}`);
+      setState('idle');
+    }
+  }
 
-      const rows: ParsedRow[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const cols = parseCSVLine(lines[i]);
-        if (cols.length < Math.max(dateCol, descCol, amountCol) + 1) continue;
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    const file = e.dataTransfer?.files[0];
+    if (file) handleFile(file);
+  }
 
-        const date = parseDate(cols[dateCol]);
-        const description = cols[descCol];
-        const amount = parseAmount(cols[amountCol]);
+  function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) handleFile(file);
+  }
 
-        if (!description && amount === 0) continue;
+  function handlePaste(text: string) {
+    if (!text.trim()) return;
+    setState('processing');
+    setError(null);
+    setFileName('(pasted text)');
 
-        rows.push({
-          id: crypto.randomUUID(),
-          date,
-          description,
-          amount,
-          selected: true,
-          isDuplicate: checkDuplicate(date, amount),
-        });
-      }
-
-      if (rows.length === 0) {
-        toast.error('No valid rows found');
+    try {
+      const txns = parse(text, { contextYear: new Date().getFullYear() });
+      if (txns.length === 0) {
+        setError('No transactions detected in pasted text.');
+        setState('idle');
         return;
       }
+      setTransactions(txns);
+      setSelected(new Set(txns.map((_, i) => i)));
+      setState('preview');
+    } catch (err: any) {
+      setError(`Failed to parse: ${err.message ?? 'unknown error'}`);
+      setState('idle');
+    }
+  }
 
-      setParsedRows(rows);
-      setStep('preview');
-      toast.success(`Parsed ${rows.length} transactions`);
-    },
-    [checkDuplicate],
-  );
+  function toggleRow(idx: number) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  }
 
-  const handleToggleRow = (id: string) => {
-    setParsedRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, selected: !r.selected } : r)),
+  function selectAll() { setSelected(new Set(transactions.map((_, i) => i))); }
+  function selectNone() { setSelected(new Set()); }
+
+  async function confirmImport() {
+    if (!accountId) { setError('Select an account first.'); return; }
+    setState('importing');
+    setError(null);
+
+    const toImport = transactions.filter((_, i) => selected.has(i));
+    let imported = 0;
+    const txIds: string[] = [];
+    const batchSize = 10;
+
+    for (let i = 0; i < toImport.length; i += batchSize) {
+      const batch = toImport.slice(i, i + batchSize);
+      await Promise.all(batch.map(async (tx) => {
+        const id = crypto.randomUUID();
+        txIds.push(id);
+        const txn = {
+          id,
+          account_id: accountId,
+          payee_id: '',
+          category_id: null,
+          date: tx.date,
+          amount: tx.amount,
+          memo: tx.description,
+          cleared: 0 as const,
+          reconciled_at: null,
+          linked_id: null,
+          source: 'import',
+          created_at: new Date().toISOString(),
+        };
+        transactionStore.createTransaction(txn);
+        imported++;
+      }));
+    }
+
+    setImportCount(imported);
+    setImportedTxIds(txIds);
+
+    const importedIds = [...txIds];
+    undoStore.push(
+      `Imported ${imported} transactions`,
+      () => { /* redo not supported */ },
+      () => { for (const id of importedIds) transactionStore.deleteTransaction(id); },
     );
-  };
 
-  const handleToggleAll = (selected: boolean) => {
-    setParsedRows((prev) => prev.map((r) => ({ ...r, selected })));
-  };
+    // Build clusters for categorize step
+    const descriptions = toImport.map(t => t.description);
+    const amounts = toImport.map(t => t.amount);
+    const importClusters = clusterDescriptions(descriptions, amounts);
 
-  const handleCommit = () => {
-    if (!accountId) {
-      toast.error('Select an account first');
-      return;
+    // Pre-fill from saved rules
+    const rules = Array.from(importRuleStore.rules.values()).map(r => ({
+      tokens: r.tokens.split(' '),
+      payeeId: r.payee_id,
+      categoryId: r.category_id,
+    }));
+
+    const assignments = new Map<string, { payeeId: string | null; categoryId: string | null }>();
+    const matched = new Set<string>();
+    for (const cluster of importClusters) {
+      const match = matchAgainstRules(cluster.sampleDescription, rules);
+      if (match) {
+        assignments.set(cluster.key, match);
+        matched.add(cluster.key);
+      }
     }
 
-    const selected = parsedRows.filter((r) => r.selected);
-    if (selected.length === 0) {
-      toast.error('No rows selected');
-      return;
+    setClusters(importClusters);
+    setClusterAssignments(assignments);
+    setPrefilledKeys(matched);
+
+    if (importClusters.length > 0) {
+      setState('categorize');
+    } else {
+      setState('done');
+    }
+  }
+
+  function setClusterPayee(key: string, payeeId: string | null) {
+    setClusterAssignments(prev => {
+      const next = new Map(prev);
+      const existing = next.get(key) ?? { payeeId: null, categoryId: null };
+      next.set(key, { ...existing, payeeId });
+      return next;
+    });
+    setEditingCluster(null);
+  }
+
+  function setClusterCategory(key: string, categoryId: string | null) {
+    setClusterAssignments(prev => {
+      const next = new Map(prev);
+      const existing = next.get(key) ?? { payeeId: null, categoryId: null };
+      next.set(key, { ...existing, categoryId });
+      return next;
+    });
+    setEditingCluster(null);
+  }
+
+  async function applyCategorization() {
+    const toImport = transactions.filter((_, i) => selected.has(i));
+    const txIds = importedTxIds;
+    const assignMap = clusterAssignments;
+
+    for (const cluster of clusters) {
+      const assignment = assignMap.get(cluster.key);
+      if (!assignment || (!assignment.payeeId && !assignment.categoryId)) continue;
+
+      for (const idx of cluster.indices) {
+        const txId = txIds[idx];
+        if (!txId) continue;
+
+        const patch: Partial<{ payee_id: string; category_id: string }> = {};
+        if (assignment.payeeId) patch.payee_id = assignment.payeeId;
+        if (assignment.categoryId) patch.category_id = assignment.categoryId;
+
+        transactionStore.updateTransaction(txId, patch);
+      }
     }
 
-    for (const row of selected) {
-      const txn: Transaction = {
+    // Save new rules
+    for (const cluster of clusters) {
+      const assignment = assignMap.get(cluster.key);
+      if (!assignment || (!assignment.payeeId && !assignment.categoryId)) continue;
+
+      importRuleStore.createRule({
         id: crypto.randomUUID(),
-        account_id: accountId,
-        payee_id: '', // Will need to be matched or created
-        category_id: null,
-        date: row.date,
-        amount: row.amount,
-        memo: row.description,
-        cleared: 0,
-        reconciled_at: null,
-        linked_id: null,
-        source: 'import',
+        tokens: signatureKey(cluster.tokens),
+        payee_id: assignment.payeeId,
+        category_id: assignment.categoryId,
         created_at: new Date().toISOString(),
-      };
-      transactionStore.createTransaction(txn);
+      });
     }
 
-    toast.success(`Imported ${selected.length} transactions`);
-    setParsedRows([]);
-    setStep('input');
-  };
+    setState('done');
+  }
 
-  const handleBack = () => {
-    setStep('input');
-  };
+  function skipCategorize() { setState('done'); }
+
+  async function cancelImport() {
+    const ids = importedTxIds;
+    if (ids.length === 0) return;
+
+    const confirmed = await confirmAction({
+      message: `Cancel import? This will delete ${ids.length} imported transaction${ids.length > 1 ? 's' : ''}.`,
+      actionLabel: 'Cancel Import',
+    });
+    if (!confirmed) return;
+
+    for (const id of ids) {
+      transactionStore.deleteTransaction(id);
+    }
+    reset();
+  }
+
+  function reset() {
+    setState('idle');
+    setTransactions([]);
+    setSelected(new Set());
+    setError(null);
+    setFileName('');
+    setImportCount(0);
+    setClusters([]);
+    setClusterAssignments(new Map());
+    setEditingCluster(null);
+    setImportedTxIds([]);
+    setPrefilledKeys(new Set());
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  const payees = Array.from(payeeStore.payees.values()).filter(p => p.type !== 'account');
+  const categories = Array.from(categoryStore.categories.values());
+  const groups = Array.from(categoryStore.groups.values());
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-        <h1 className="text-xl font-medium text-zinc-100">Import Transactions</h1>
+    <div className="import-view">
+      <div className="import-view__topbar">
+        <h1 className="import-view__title">Smart Import</h1>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6">
-        {step === 'input' && <ImportInput onParse={handleParse} />}
-        {step === 'preview' && (
-          <div className="space-y-4">
-            {/* Account selector */}
-            <div className="flex items-center gap-4">
-              <label className="text-sm text-zinc-400">Import into:</label>
-              <select
-                value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
-                className="bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-              >
-                <option value="">Select account</option>
-                {accountStore.sortedAccounts.map((a) => (
-                  <option key={a.id} value={a.id}>{a.name}</option>
+      <div className="import-view__content">
+        {(state === 'idle' || state === 'processing') && (
+          <>
+            <div
+              className={`import-dropzone ${state === 'processing' ? 'import-dropzone--processing' : ''}`}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input ref={fileInputRef} type="file" accept=".pdf,.csv,.txt" style={{ display: 'none' }} onChange={handleFileInput} />
+              <div className="import-dropzone__icon">
+                {state === 'processing' ? <FileText size={32} /> : <Upload size={32} />}
+              </div>
+              <p className="import-dropzone__title">
+                {state === 'processing' ? 'Parsing...' : 'Drop bank statement here'}
+              </p>
+              <p className="import-dropzone__desc">PDF, CSV, or TXT file</p>
+            </div>
+
+            <div className="import-paste">
+              <textarea
+                className="import-paste__textarea"
+                placeholder="Or paste statement text here..."
+                rows={4}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                    handlePaste((e.target as HTMLTextAreaElement).value);
+                  }
+                }}
+              />
+              <p className="import-paste__hint">Ctrl+Enter to parse</p>
+            </div>
+
+            {error && (
+              <div className="import-error">
+                <AlertTriangle size={14} />
+                <span>{error}</span>
+              </div>
+            )}
+          </>
+        )}
+
+        {state === 'preview' && (
+          <div className="import-preview">
+            <div className="import-preview__header">
+              <span className="import-preview__file">{fileName}</span>
+              <span className="import-preview__count">{summary.count} of {transactions.length} selected</span>
+              <button className="btn btn--sm btn--ghost" onClick={selectAll}>All</button>
+              <button className="btn btn--sm btn--ghost" onClick={selectNone}>None</button>
+              <button className="btn btn--sm btn--ghost" onClick={reset}>Cancel</button>
+            </div>
+
+            <div className="import-preview__account">
+              <label>Import to:</label>
+              <div className="import-preview__account-picker" style={{ position: 'relative' }}>
+                <div
+                  ref={accountTriggerRef}
+                  className="add-txn-dialog__input add-txn-dialog__input--select"
+                  onClick={() => setShowAccountPicker(true)}
+                >
+                  {selectedAccount ? selectedAccount.name : 'Select account...'} ▾
+                </div>
+                {showAccountPicker && (
+                  <EntityPicker
+                    sections={accountSections}
+                    value={accountId}
+                    placeholder="Search account..."
+                    onPick={(id) => { setAccountId(id ?? ''); setShowAccountPicker(false); }}
+                    onCancel={() => setShowAccountPicker(false)}
+                    triggerRef={accountTriggerRef}
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="import-preview__table">
+              <div className="import-preview__table-header">
+                <div className="import-col--check" />
+                <div className="import-col--date">Date</div>
+                <div className="import-col--desc">Description</div>
+                <div className="import-col--amount">Amount</div>
+              </div>
+              <div className="import-preview__table-body">
+                {transactions.map((tx, i) => (
+                  <div key={i} className={`import-row ${selected.has(i) ? '' : 'import-row--deselected'}`} onClick={() => toggleRow(i)}>
+                    <div className="import-col--check">
+                      <input type="checkbox" checked={selected.has(i)} onChange={() => toggleRow(i)} />
+                    </div>
+                    <div className="import-col--date">{tx.date}</div>
+                    <div className="import-col--desc">{tx.description.slice(0, 60)}</div>
+                    <div className={`import-col--amount ${tx.amount >= 0 ? 'money--positive' : 'money--negative'}`}>
+                      {tx.amount < 0 ? '-' : ''}{formatCurrency(Math.abs(tx.amount)).replace(/^-/, '')}
+                    </div>
+                  </div>
                 ))}
-              </select>
+              </div>
             </div>
 
-            <ImportPreview
-              rows={parsedRows}
-              onToggleRow={handleToggleRow}
-              onToggleAll={handleToggleAll}
-            />
-
-            <div className="flex items-center gap-3">
+            <div className="import-preview__footer">
+              {error && (
+                <div className="import-error">
+                  <AlertTriangle size={14} />
+                  <span>{error}</span>
+                </div>
+              )}
+              <div className="import-preview__summary">
+                <span>Income: +{formatCurrency(summary.income)}</span>
+                <span>Expense: {formatCurrency(summary.expense)}</span>
+              </div>
               <button
-                onClick={handleBack}
-                className="px-4 py-2 text-sm rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors"
+                className="btn btn--primary"
+                disabled={!accountId || summary.count === 0}
+                onClick={confirmImport}
               >
-                ← Back
-              </button>
-              <button
-                onClick={handleCommit}
-                className="px-4 py-2 text-sm rounded bg-indigo-600 text-white hover:bg-indigo-500 transition-colors"
-              >
-                Import {parsedRows.filter((r) => r.selected).length} transactions
+                Import {summary.count} transactions
               </button>
             </div>
+          </div>
+        )}
+
+        {state === 'importing' && (
+          <div className="import-progress">
+            <FileText size={32} />
+            <p>Importing transactions...</p>
+          </div>
+        )}
+
+        {state === 'categorize' && (
+          <div className="import-categorize">
+            <div className="import-categorize__header">
+              <div className="import-categorize__title">
+                <Tag size={16} />
+                <span>Categorize {importCount} transactions</span>
+              </div>
+              <p className="import-categorize__desc">Assign payee and category per group. These rules auto-apply on future imports.</p>
+            </div>
+
+            <div className="import-categorize__list">
+              {clusters.map((cluster) => {
+                const assignment = clusterAssignments.get(cluster.key);
+                const isEditingPayee = editingCluster?.key === cluster.key && editingCluster?.field === 'payee';
+                const isEditingCategory = editingCluster?.key === cluster.key && editingCluster?.field === 'category';
+
+                const pid = assignment?.payeeId;
+                const payee = pid ? payees.find(p => p.id === pid) : null;
+                const payeeLabel = payee ? payee.name : null;
+                const isPayeeAuto = pid && prefilledKeys.has(cluster.key);
+
+                const cid = assignment?.categoryId;
+                const cat = cid ? categories.find(c => c.id === cid) : null;
+                const catLabel = cat ? cat.name : null;
+                const isCatAuto = cid && prefilledKeys.has(cluster.key);
+
+                return (
+                  <div key={cluster.key} className="import-cluster">
+                    <div className="import-cluster__info">
+                      <div className="import-cluster__sample">{cluster.sampleDescription.slice(0, 80)}</div>
+                      <div className="import-cluster__meta">
+                        <span className="import-cluster__count">{cluster.indices.length} txn{cluster.indices.length > 1 ? 's' : ''}</span>
+                        <span className="import-cluster__range">
+                          {cluster.amountMin < 0 ? '-' : ''}{formatCurrency(Math.abs(cluster.amountMin)).replace(/^-/, '')}
+                          {cluster.amountMin !== cluster.amountMax ? ` – ${cluster.amountMax < 0 ? '-' : ''}${formatCurrency(Math.abs(cluster.amountMax)).replace(/^-/, '')}` : ''}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="import-cluster__assignments">
+                      <div className="import-cluster__field" style={{ position: 'relative' }}>
+                        <div
+                          className={`import-cluster__pill ${payeeLabel ? (isPayeeAuto ? 'import-cluster__pill--auto' : 'import-cluster__pill--set') : ''}`}
+                          onClick={() => setEditingCluster({ key: cluster.key, field: 'payee' })}
+                        >
+                          {payeeLabel ? (isPayeeAuto ? `⚡ ${payeeLabel}` : payeeLabel) : 'Set payee...'}
+                        </div>
+                        {isEditingPayee && (
+                          <PayeePicker
+                            value={assignment?.payeeId ?? null}
+                            onPick={(id) => setClusterPayee(cluster.key, id)}
+                            onCancel={() => setEditingCluster(null)}
+                            onTab={() => setEditingCluster({ key: cluster.key, field: 'category' })}
+                          />
+                        )}
+                      </div>
+                      <div className="import-cluster__field" style={{ position: 'relative' }}>
+                        <div
+                          className={`import-cluster__pill ${catLabel ? (isCatAuto ? 'import-cluster__pill--auto' : 'import-cluster__pill--set') : ''}`}
+                          onClick={() => setEditingCluster({ key: cluster.key, field: 'category' })}
+                        >
+                          {catLabel ? (isCatAuto ? `⚡ ${catLabel}` : catLabel) : 'Set category...'}
+                        </div>
+                        {isEditingCategory && (
+                          <CategoryPicker
+                            value={assignment?.categoryId ?? null}
+                            onPick={(id) => setClusterCategory(cluster.key, id)}
+                            onCancel={() => setEditingCluster(null)}
+                            onTab={() => setEditingCluster(null)}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="import-categorize__footer">
+              <button className="btn btn--sm btn--ghost btn--danger" onClick={cancelImport}>Cancel Import</button>
+              <button className="btn btn--sm btn--ghost" onClick={skipCategorize}>Skip</button>
+              <button className="btn btn--primary" onClick={applyCategorization}>Apply & Save Rules</button>
+            </div>
+          </div>
+        )}
+
+        {state === 'done' && (
+          <div className="import-done">
+            <div className="import-done__icon"><Check size={32} /></div>
+            <p className="import-done__title">Import complete</p>
+            <p className="import-done__desc">{importCount} transactions imported.</p>
+            <button className="btn btn--primary" onClick={reset}>Import more</button>
+            <button className="btn btn--sm btn--ghost btn--danger" onClick={cancelImport}>Cancel Import</button>
           </div>
         )}
       </div>

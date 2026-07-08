@@ -9,7 +9,7 @@ interface CategoryPickerProps {
   onPick: (categoryId: string | null) => void;
   onCancel: () => void;
   onTab?: () => void;
-  triggerRef: React.RefObject<HTMLElement | null>;
+  triggerRef?: React.RefObject<HTMLElement | null>;
 }
 
 export const CategoryPicker = observer(function CategoryPicker({

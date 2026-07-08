@@ -23,7 +23,7 @@ interface EntityPickerProps {
   onCreate?: (name: string, sectionKey: string) => void;
   onCancel: () => void;
   onTab?: () => void;
-  triggerRef: React.RefObject<HTMLElement | null>;
+  triggerRef?: React.RefObject<HTMLElement | null>;
 }
 
 export function EntityPicker({
@@ -120,12 +120,19 @@ export function EntityPicker({
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
 
   useEffect(() => {
-    if (triggerRef.current) {
+    if (triggerRef?.current) {
       const rect = triggerRef.current.getBoundingClientRect();
       setPosition({
         top: rect.bottom + 2,
         left: rect.left,
         width: Math.max(rect.width, 220),
+      });
+    } else {
+      // Fallback: position at center of viewport
+      setPosition({
+        top: window.innerHeight / 3,
+        left: window.innerWidth / 2 - 150,
+        width: 300,
       });
     }
   }, [triggerRef]);

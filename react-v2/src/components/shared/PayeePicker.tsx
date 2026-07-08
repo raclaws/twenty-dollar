@@ -9,7 +9,7 @@ interface PayeePickerProps {
   onPick: (payeeId: string | null) => void;
   onCancel: () => void;
   onTab?: () => void;
-  triggerRef: React.RefObject<HTMLElement | null>;
+  triggerRef?: React.RefObject<HTMLElement | null>;
 }
 
 export const PayeePicker = observer(function PayeePicker({

@@ -11,33 +11,26 @@ export const MonthNavigator = observer(function MonthNavigator() {
   const isToday = currentMonth === today;
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="month-nav">
       <button
+        className="month-nav__btn"
         onClick={() => budgetStore.navigateMonth(-1)}
-        className="p-1.5 rounded-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
         aria-label="Previous month"
       >
-        <ChevronLeft size={18} />
+        <ChevronLeft size={16} />
       </button>
-
-      <span className="text-sm font-medium text-zinc-100 min-w-[140px] text-center font-[Figtree]">
-        {formatMonthLabel(currentMonth)}
-      </span>
-
+      <span className="month-nav__label">{formatMonthLabel(currentMonth)}</span>
       <button
+        className="month-nav__btn"
         onClick={() => budgetStore.navigateMonth(1)}
-        className="p-1.5 rounded-sm text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
         aria-label="Next month"
       >
-        <ChevronRight size={18} />
+        <ChevronRight size={16} />
       </button>
-
       {!isToday && (
         <button
-          onClick={() => {
-            budgetStore.currentMonth = today;
-          }}
-          className="ml-2 px-2 py-1 text-xs rounded-sm bg-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700 transition-colors"
+          className="month-nav__btn month-nav__btn--today"
+          onClick={() => { budgetStore.currentMonth = today; }}
         >
           Today
         </button>
