@@ -1,0 +1,233 @@
+meta:
+  version: "1.0.0"
+  scope: "web_browser"
+  applies_to: "any web application running in a modern browser tab"
+
+operation_categories:
+  FETCH:
+    description: "HTTP request to server"
+    mechanism: "fetch() or XMLHttpRequest"
+  TIMER:
+    description: "Deferred operation via setTimeout/setInterval"
+    mechanism: "JS timer scheduled to fire after delay"
+  UI:
+    description: "User interaction requiring visible, interactive page"
+    mechanism: "DOM event listener"
+  NAV:
+    description: "Full page navigation (URL change, back/forward, refresh)"
+    mechanism: "browser navigation"
+
+context_dimensions:
+  PageLifecycle:
+    states: [active, hidden, frozen, terminated]
+    source: "Page Lifecycle API"
+  ResponseSource:
+    states: [network, browser_cache, bfcache]
+    source: "HTTP caching / bfcache restoration"
+  Connectivity:
+    states: [online, offline]
+    source: "Navigator.onLine"
+
+relations:
+  - category: FETCH
+    dimension: PageLifecycle
+    state: hidden
+    relation: TRANSPARENT
+    reason: "fetch() works normally from background tabs"
+    edge_cases:
+      - "Response arrives but user cannot see feedback"
+
+  - category: TIMER
+    dimension: PageLifecycle
+    state: hidden
+    relation: DEGRADES
+    reason: "setTimeout throttled to 1000ms+ in hidden tabs"
+    edge_cases:
+      - "5s timer may take 6-10s to fire"
+
+  - category: UI
+    dimension: PageLifecycle
+    state: hidden
+    relation: INTERFERES
+    reason: "User cannot interact while tab is hidden"
+    edge_cases:
+      - "Interaction resumes on tab switch back"
+
+  - category: NAV
+    dimension: PageLifecycle
+    state: hidden
+    relation: TRANSPARENT
+    reason: "Navigation from hidden is a tab-switch-back"
+    edge_cases: []
+
+  - category: FETCH
+    dimension: PageLifecycle
+    state: frozen
+    relation: INTERFERES
+    reason: "No JS executes — fetch cannot initiate"
+    edge_cases:
+      - "In-flight fetch may complete on unfreeze"
+      - "Resume event fires on unfreeze"
+
+  - category: TIMER
+    dimension: PageLifecycle
+    state: frozen
+    relation: INTERFERES
+    reason: "All timers paused — will not fire until unfreeze"
+    edge_cases:
+      - "Timer resumes on unfreeze with remaining time"
+      - "If frozen for hours, fires immediately on unfreeze (stale intent)"
+
+  - category: UI
+    dimension: PageLifecycle
+    state: frozen
+    relation: INTERFERES
+    reason: "No user interaction possible"
+    edge_cases: []
+
+  - category: NAV
+    dimension: PageLifecycle
+    state: frozen
+    relation: INTERFERES
+    reason: "No navigation possible — page is frozen"
+    edge_cases:
+      - "Unfreeze triggers resume event, not navigation"
+
+  - category: FETCH
+    dimension: PageLifecycle
+    state: terminated
+    relation: INTERFERES
+    reason: "Page destroyed — nothing can execute"
+    edge_cases:
+      - "sendBeacon() in beforeunload can fire one last request"
+      - "fetch with keepalive:true in beforeunload may complete"
+
+  - category: TIMER
+    dimension: PageLifecycle
+    state: terminated
+    relation: INTERFERES
+    reason: "All timers destroyed — pending operations lost permanently"
+    edge_cases:
+      - "beforeunload is the ONLY chance to flush pending work"
+      - "Not all browsers fire beforeunload reliably (mobile Safari)"
+
+  - category: UI
+    dimension: PageLifecycle
+    state: terminated
+    relation: INTERFERES
+    reason: "Page no longer exists"
+    edge_cases: []
+
+  - category: NAV
+    dimension: PageLifecycle
+    state: terminated
+    relation: INTERFERES
+    reason: "Next visit is fresh page load — all client state gone"
+    edge_cases:
+      - "Server state intact — only ephemeral client state lost"
+
+  - category: FETCH
+    dimension: ResponseSource
+    state: browser_cache
+    relation: TRANSPARENT
+    reason: "POST/PATCH/DELETE bypass HTTP cache; GET may cache without Cache-Control"
+    edge_cases:
+      - "GET without Cache-Control header CAN be served from disk cache"
+
+  - category: TIMER
+    dimension: ResponseSource
+    state: browser_cache
+    relation: TRANSPARENT
+    reason: "Timers unrelated to HTTP cache"
+    edge_cases: []
+
+  - category: UI
+    dimension: ResponseSource
+    state: browser_cache
+    relation: TRANSPARENT
+    reason: "UI unaffected by response source"
+    edge_cases: []
+
+  - category: NAV
+    dimension: ResponseSource
+    state: browser_cache
+    relation: INTERFERES
+    reason: "Browser serves cached HTML — shows stale application state"
+    edge_cases:
+      - "Only if server omits Cache-Control: no-store"
+      - "Server-rendered apps more vulnerable than SPAs"
+
+  - category: FETCH
+    dimension: ResponseSource
+    state: bfcache
+    relation: TRANSPARENT
+    reason: "bfcache restores page; individual fetches unaffected"
+    edge_cases: []
+
+  - category: TIMER
+    dimension: ResponseSource
+    state: bfcache
+    relation: TRANSPARENT
+    reason: "Timers resume from where paused"
+    edge_cases:
+      - "Timer fires immediately if deadline passed while cached"
+
+  - category: UI
+    dimension: ResponseSource
+    state: bfcache
+    relation: TRANSPARENT
+    reason: "UI fully interactive after restore"
+    edge_cases: []
+
+  - category: NAV
+    dimension: ResponseSource
+    state: bfcache
+    relation: INTERFERES
+    reason: "Restores entire DOM + JS heap from snapshot — stale state"
+    edge_cases:
+      - "pageshow with persisted=true is detectable"
+      - "All in-memory state is from when user LEFT"
+
+  - category: FETCH
+    dimension: Connectivity
+    state: offline
+    relation: INTERFERES
+    reason: "Network requests fail — server unreachable"
+    edge_cases:
+      - "fetch() rejects with TypeError (no status code)"
+      - "Optimistic UI already applied — must revert or queue"
+
+  - category: TIMER
+    dimension: Connectivity
+    state: offline
+    relation: DEGRADES
+    reason: "Timer fires but triggered fetch will fail"
+    edge_cases:
+      - "Timer mechanism unaffected — only network op at end fails"
+
+  - category: UI
+    dimension: Connectivity
+    state: offline
+    relation: TRANSPARENT
+    reason: "User can interact normally — UI is local"
+    edge_cases:
+      - "Triggered fetch fails but click itself works"
+
+  - category: NAV
+    dimension: Connectivity
+    state: offline
+    relation: INTERFERES
+    reason: "Browser cannot load page from server"
+    edge_cases:
+      - "Service Worker can intercept (if registered)"
+      - "Browser shows its own offline error page"
+
+fold_rules:
+  - rule: "frozen/terminated collapse to lifecycle:paused_or_dead"
+    keeps: "both listed as constituents with severity note (frozen=paused, terminated=lost)"
+  - rule: "browser_cache/bfcache collapse to stale_page_restoration"
+    keeps: "both listed — same fix (Cache-Control + pageshow handler) but different mechanisms"
+  - rule: "hidden + offline collapses (offline dominates for FETCH ops)"
+    keeps: "hidden noted as co-occurring context in the cluster detail"
+  - rule: "lifecycle × cache combinations collapse when lifecycle dominates"
+    keeps: "cache variant noted — irrelevant when page can't execute, but recorded"

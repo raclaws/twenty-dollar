@@ -1,0 +1,560 @@
+meta:
+  project: "twenty-dollar-react-v2"
+  spec_dir: "/root/twenty-dollar/react-v2/specs"
+
+entities:
+  Session:
+    - none
+    - valid
+    - expired
+  Account:
+    - active
+    - closed
+  Payee:
+    - active
+  CategoryGroup:
+    - active
+  Category:
+    - active
+    - hidden
+  Transaction:
+    - uncleared
+    - cleared
+    - reconciled
+  SplitEntry:
+    - exists
+  Assignment:
+    - exists
+  Schedule:
+    - active
+    - paused
+    - expired
+  ImportRule:
+    - exists
+  MonthLock:
+    - unlocked
+    - locked
+  Sync:
+    - online
+    - offline
+    - syncing
+    - error
+
+operations:
+  # === AUTH FETCH ops ===
+  - name: "POST /auth/login"
+    touches: ["Session"]
+  - name: "POST /auth/logout"
+    touches: ["Session"]
+  - name: "GET /auth/check"
+    touches: ["Session"]
+
+  # === ACCOUNT FETCH ops ===
+  - name: "GET /api/accounts"
+    touches: ["Account", "Session"]
+  - name: "POST /api/accounts"
+    touches: ["Account", "Payee", "Session"]
+  - name: "PATCH /api/accounts/:id"
+    touches: ["Account", "Session"]
+  - name: "DELETE /api/accounts/:id"
+    touches: ["Account", "Transaction", "Session"]
+  - name: "PUT /api/accounts/reorder"
+    touches: ["Account", "Session"]
+
+  # === PAYEE FETCH ops ===
+  - name: "GET /api/payees"
+    touches: ["Payee", "Session"]
+  - name: "POST /api/payees"
+    touches: ["Payee", "Session"]
+  - name: "PATCH /api/payees/:id"
+    touches: ["Payee", "Session"]
+  - name: "DELETE /api/payees/:id"
+    touches: ["Payee", "Transaction", "Session"]
+
+  # === CATEGORY GROUP FETCH ops ===
+  - name: "GET /api/category-groups"
+    touches: ["CategoryGroup", "Category", "Session"]
+  - name: "POST /api/category-groups"
+    touches: ["CategoryGroup", "Session"]
+  - name: "PATCH /api/category-groups/:id"
+    touches: ["CategoryGroup", "Session"]
+  - name: "DELETE /api/category-groups/:id"
+    touches: ["CategoryGroup", "Category", "Session"]
+  - name: "PUT /api/category-groups/reorder"
+    touches: ["CategoryGroup", "Session"]
+
+  # === CATEGORY FETCH ops ===
+  - name: "POST /api/categories"
+    touches: ["Category", "CategoryGroup", "Session"]
+  - name: "PATCH /api/categories/:id"
+    touches: ["Category", "CategoryGroup", "Session"]
+  - name: "DELETE /api/categories/:id"
+    touches: ["Category", "Transaction", "SplitEntry", "Session"]
+  - name: "PUT /api/categories/reorder"
+    touches: ["Category", "Session"]
+
+  # === TRANSACTION FETCH ops ===
+  - name: "GET /api/transactions"
+    touches: ["Transaction", "Account", "Session"]
+  - name: "POST /api/transactions"
+    touches: ["Transaction", "Account", "Payee", "Category", "SplitEntry", "Session"]
+  - name: "PATCH /api/transactions/:id"
+    touches: ["Transaction", "Account", "Session"]
+  - name: "DELETE /api/transactions/:id"
+    touches: ["Transaction", "SplitEntry", "Session"]
+  - name: "POST /api/transactions/bulk"
+    touches: ["Transaction", "SplitEntry", "Category", "Session"]
+  - name: "PUT /api/transactions/:id/splits"
+    touches: ["SplitEntry", "Transaction", "Category", "Session"]
+
+  # === ASSIGNMENT FETCH ops ===
+  - name: "GET /api/assignments"
+    touches: ["Assignment", "Session"]
+  - name: "PUT /api/assignments"
+    touches: ["Assignment", "Category", "MonthLock", "Session"]
+  - name: "POST /api/assignments/move"
+    touches: ["Assignment", "Category", "MonthLock", "Session"]
+
+  # === SCHEDULE FETCH ops ===
+  - name: "GET /api/schedules"
+    touches: ["Schedule", "Session"]
+  - name: "POST /api/schedules"
+    touches: ["Schedule", "Account", "Payee", "Session"]
+  - name: "PATCH /api/schedules/:id"
+    touches: ["Schedule", "Session"]
+  - name: "DELETE /api/schedules/:id"
+    touches: ["Schedule", "Session"]
+  - name: "POST /api/schedules/generate"
+    touches: ["Schedule", "Transaction", "Account", "Session"]
+
+  # === IMPORT RULE FETCH ops ===
+  - name: "GET /api/import-rules"
+    touches: ["ImportRule", "Session"]
+  - name: "POST /api/import-rules"
+    touches: ["ImportRule", "Session"]
+  - name: "PATCH /api/import-rules/:id"
+    touches: ["ImportRule", "Session"]
+  - name: "DELETE /api/import-rules/:id"
+    touches: ["ImportRule", "Session"]
+
+  # === MONTH LOCK FETCH ops ===
+  - name: "GET /api/month-locks"
+    touches: ["MonthLock", "Session"]
+  - name: "POST /api/month-locks"
+    touches: ["MonthLock", "Session"]
+  - name: "DELETE /api/month-locks/:month"
+    touches: ["MonthLock", "Session"]
+
+  # === IMPORT/EXPORT FETCH ops ===
+  - name: "POST /api/import/csv"
+    touches: ["Transaction", "Payee", "Account", "ImportRule", "Session"]
+  - name: "GET /api/export"
+    touches: ["Account", "Payee", "CategoryGroup", "Category", "Transaction", "SplitEntry", "Assignment", "Schedule", "ImportRule", "MonthLock", "Session"]
+
+  # === SSE FETCH op ===
+  - name: "GET /api/events"
+    touches: ["Sync", "Session"]
+
+  # === HYDRATION FETCH op ===
+  - name: "GET /api/hydrate"
+    touches: ["Account", "Payee", "CategoryGroup", "Category", "Transaction", "SplitEntry", "Assignment", "Schedule", "ImportRule", "MonthLock", "Session"]
+
+  # === NAV ops (one per route) ===
+  - name: "navigate_to_budget"
+    touches: ["Session"]
+  - name: "navigate_to_budget_month"
+    touches: ["Session"]
+  - name: "navigate_to_accounts"
+    touches: ["Session"]
+  - name: "navigate_to_account_ledger"
+    touches: ["Session", "Account"]
+  - name: "navigate_to_account_transactions"
+    touches: ["Session", "Account"]
+  - name: "navigate_to_schedules"
+    touches: ["Session"]
+  - name: "navigate_to_import"
+    touches: ["Session", "Account"]
+  - name: "navigate_to_settings"
+    touches: ["Session"]
+  - name: "navigate_to_settings_categories"
+    touches: ["Session"]
+  - name: "navigate_to_settings_payees"
+    touches: ["Session"]
+  - name: "navigate_to_settings_import_rules"
+    touches: ["Session"]
+  - name: "navigate_to_settings_export"
+    touches: ["Session"]
+  - name: "navigate_to_login"
+    touches: ["Session"]
+
+  # === TIMER ops ===
+  - name: "undo_timer_expire"
+    touches: ["Transaction", "Assignment", "Category"]
+  - name: "sse_reconnect"
+    touches: ["Sync"]
+  - name: "session_expire"
+    touches: ["Session"]
+  - name: "sse_heartbeat"
+    touches: ["Sync"]
+  - name: "assignment_debounce"
+    touches: ["Assignment"]
+  - name: "offline_queue_flush"
+    touches: ["Sync", "Transaction", "Assignment"]
+
+  # === UI ops ===
+  - name: "drag_category_sort"
+    touches: ["Category", "CategoryGroup"]
+  - name: "drag_category_group_sort"
+    touches: ["CategoryGroup"]
+  - name: "drag_account_sort"
+    touches: ["Account"]
+  - name: "inline_edit_account_name"
+    touches: ["Account"]
+  - name: "inline_edit_assignment"
+    touches: ["Assignment", "Category", "MonthLock"]
+  - name: "inline_edit_transaction"
+    touches: ["Transaction", "Account", "Category", "Payee"]
+  - name: "inline_edit_category_target"
+    touches: ["Category"]
+  - name: "inline_edit_import_rule"
+    touches: ["ImportRule"]
+  - name: "bulk_select_transactions"
+    touches: ["Transaction"]
+  - name: "command_palette_open"
+    touches: ["Session"]
+  - name: "split_editor_add_row"
+    touches: ["SplitEntry", "Transaction"]
+  - name: "toggle_schedule_pause"
+    touches: ["Schedule"]
+
+spec_coverage:
+  # Auth
+  - ["Session=none", "POST /auth/login", "returns 200 + session cookie on valid creds"]
+  - ["Session=none", "POST /auth/login", "returns 401 on invalid creds"]
+  - ["Session=valid", "POST /auth/logout", "returns 200, clears session"]
+  - ["Session=valid", "GET /auth/check", "returns authenticated=true"]
+  - ["Session=none", "GET /auth/check", "returns authenticated=false"]
+  - ["Session=expired", "*", "returns 401 SESSION_EXPIRED"]
+  - ["Session=none", "*", "returns 401 SESSION_INVALID for protected endpoints"]
+
+  # Accounts
+  - ["Account=active", "POST /api/accounts", "returns 201 + auto-creates payee"]
+  - ["Account=active", "POST /api/accounts", "returns 409 DUPLICATE_NAME on name collision"]
+  - ["Account=active", "PATCH /api/accounts/:id", "returns 200 with updated account"]
+  - ["Account=active", "PATCH /api/accounts/:id", "returns 409 DUPLICATE_NAME"]
+  - ["Account=active", "DELETE /api/accounts/:id", "returns 200 soft-deletes if no txns"]
+  - ["Account=active, Transaction=exists", "DELETE /api/accounts/:id", "returns 409 DELETE_GUARD"]
+  - ["Account=closed", "GET /api/accounts", "excluded from results"]
+  - ["Account=active", "PUT /api/accounts/reorder", "returns 200 updates sort_order"]
+
+  # Payees
+  - ["Payee=active", "POST /api/payees", "returns 201"]
+  - ["Payee=active", "POST /api/payees", "returns 409 DUPLICATE_NAME"]
+  - ["Payee=active", "PATCH /api/payees/:id", "returns 200"]
+  - ["Payee=active, Transaction=exists", "DELETE /api/payees/:id", "returns 409 DELETE_GUARD"]
+
+  # Category Groups
+  - ["CategoryGroup=active", "POST /api/category-groups", "returns 201"]
+  - ["CategoryGroup=active", "POST /api/category-groups", "returns 409 DUPLICATE_NAME"]
+  - ["CategoryGroup=active, Category=active", "DELETE /api/category-groups/:id", "returns 409 DELETE_GUARD"]
+  - ["CategoryGroup=active", "DELETE /api/category-groups/:id", "returns 200 if empty"]
+  - ["CategoryGroup=active", "PUT /api/category-groups/reorder", "returns 200"]
+
+  # Categories
+  - ["Category=active", "POST /api/categories", "returns 201"]
+  - ["Category=active", "POST /api/categories", "returns 409 DUPLICATE_NAME in group"]
+  - ["Category=active", "PATCH /api/categories/:id", "returns 200 allows group reassignment"]
+  - ["Category=active, Transaction=exists", "DELETE /api/categories/:id", "returns 409 DELETE_GUARD"]
+  - ["Category=active, SplitEntry=exists", "DELETE /api/categories/:id", "returns 409 DELETE_GUARD"]
+  - ["Category=active", "PUT /api/categories/reorder", "returns 200"]
+
+  # Transactions
+  - ["Transaction=uncleared", "POST /api/transactions", "returns 201"]
+  - ["Transaction=uncleared", "POST /api/transactions", "returns 422 if amount=0"]
+  - ["Transaction=uncleared", "POST /api/transactions", "returns 422 SPLIT_SUM_MISMATCH"]
+  - ["Transaction=uncleared", "POST /api/transactions", "creates mirror for transfer payee"]
+  - ["Transaction=uncleared", "PATCH /api/transactions/:id", "returns 200"]
+  - ["Transaction=uncleared", "PATCH /api/transactions/:id", "propagates to mirror if transfer"]
+  - ["Transaction=uncleared", "DELETE /api/transactions/:id", "returns 200, cascades splits"]
+  - ["Transaction=uncleared", "DELETE /api/transactions/:id", "deletes mirror if transfer"]
+  - ["Transaction=cleared", "POST /api/transactions/bulk", "action=delete removes all + mirrors"]
+  - ["Transaction=uncleared", "POST /api/transactions/bulk", "action=clear sets cleared=1"]
+  - ["Transaction=cleared", "POST /api/transactions/bulk", "action=unclear sets cleared=0"]
+  - ["Transaction=uncleared", "POST /api/transactions/bulk", "action=categorize sets category_id"]
+  - ["Transaction=uncleared", "PUT /api/transactions/:id/splits", "replaces splits atomically"]
+  - ["Transaction=uncleared", "PUT /api/transactions/:id/splits", "returns 422 SPLIT_SUM_MISMATCH"]
+
+  # Assignments
+  - ["Assignment=exists", "PUT /api/assignments", "upserts for category+month"]
+  - ["MonthLock=locked", "PUT /api/assignments", "returns 409 MONTH_LOCKED"]
+  - ["Assignment=exists", "POST /api/assignments/move", "adjusts two assignments atomically"]
+  - ["MonthLock=locked", "POST /api/assignments/move", "returns 409 MONTH_LOCKED"]
+  - ["Assignment=exists", "POST /api/assignments/move", "returns 422 if from=to"]
+  - ["Assignment=exists", "POST /api/assignments/move", "returns 422 if amount<=0"]
+
+  # Schedules
+  - ["Schedule=active", "POST /api/schedules", "returns 201, next_due=start_date"]
+  - ["Schedule=active", "POST /api/schedules/generate", "creates transactions for due schedules"]
+  - ["Schedule=paused", "POST /api/schedules/generate", "skipped"]
+  - ["Schedule=expired", "POST /api/schedules/generate", "skipped, does not advance"]
+  - ["Schedule=active", "PATCH /api/schedules/:id", "returns 200"]
+  - ["Schedule=active", "DELETE /api/schedules/:id", "returns 200, no cascade to generated txns"]
+
+  # Import Rules
+  - ["ImportRule=exists", "POST /api/import-rules", "returns 201"]
+  - ["ImportRule=exists", "PATCH /api/import-rules/:id", "returns 200"]
+  - ["ImportRule=exists", "DELETE /api/import-rules/:id", "returns 200"]
+  - ["ImportRule=exists", "POST /api/import/csv", "rules applied case-insensitive, first match wins"]
+
+  # Month Locks
+  - ["MonthLock=unlocked", "POST /api/month-locks", "returns 201 creates lock"]
+  - ["MonthLock=locked", "POST /api/month-locks", "returns 409 ALREADY_LOCKED"]
+  - ["MonthLock=locked", "DELETE /api/month-locks/:month", "returns 200 unlocks"]
+  - ["MonthLock=unlocked", "DELETE /api/month-locks/:month", "returns 404 NOT_FOUND"]
+  - ["MonthLock=locked", "POST /api/transactions", "allowed (lock does not block txns)"]
+
+  # Import/Export
+  - ["Account=active", "POST /api/import/csv", "returns 200 with imported/skipped/errors"]
+  - ["Account=active", "POST /api/import/csv", "returns 422 if missing account_id"]
+  - ["*", "GET /api/export", "returns all entity tables as JSON"]
+
+  # SSE
+  - ["Sync=online", "GET /api/events", "returns text/event-stream"]
+  - ["Session=valid", "GET /api/events", "broadcasts entity_created/updated/deleted"]
+  - ["Sync=online", "sse_heartbeat", "sent every 30s"]
+  - ["Sync=offline", "sse_reconnect", "reconnects with Last-Event-ID replay"]
+  - ["Session=none", "GET /api/events", "returns 401"]
+
+  # Hydration
+  - ["Session=valid", "GET /api/hydrate", "returns all tables + server_time"]
+
+  # Offline CRUD coverage
+  - ["Sync=offline", "POST /api/transactions", "writes to IDB, queues for sync"]
+  - ["Sync=offline", "PUT /api/assignments", "writes to IDB, queues for sync"]
+  - ["Sync=offline", "POST /api/accounts", "writes to IDB, queues for sync"]
+  - ["Sync=offline", "PATCH /api/transactions/:id", "writes to IDB, queues for sync"]
+  - ["Sync=offline", "DELETE /api/transactions/:id", "writes to IDB, queues for sync"]
+  - ["Sync=offline", "POST /api/import/csv", "writes to IDB, syncs later"]
+  - ["Sync=offline", "GET /api/export", "reads from IDB, always available"]
+  - ["Sync=offline", "POST /api/assignments/move", "writes to IDB, queues for sync"]
+
+  # UI operations
+  - ["Category=active", "drag_category_sort", "sort_order persists on drop"]
+  - ["CategoryGroup=active", "drag_category_group_sort", "sort_order persists on drop"]
+  - ["Account=active", "drag_account_sort", "sort_order persists on drop"]
+  - ["Account=active", "inline_edit_account_name", "saves on Enter, cancels on Escape"]
+  - ["MonthLock=unlocked", "inline_edit_assignment", "saves on Enter/Tab, undo toast 5s"]
+  - ["MonthLock=locked", "inline_edit_assignment", "cell is read-only"]
+  - ["Transaction=uncleared", "inline_edit_transaction", "saves on Enter, cancels on Escape"]
+  - ["Category=active", "inline_edit_category_target", "saves target type/amount/date"]
+  - ["Transaction=uncleared", "bulk_select_transactions", "enables bulk action bar"]
+
+  # Undo/Timer
+  - ["Assignment=exists", "undo_timer_expire", "undo option removed after 5s"]
+  - ["Sync=offline", "sse_reconnect", "exponential backoff reconnect"]
+  - ["Session=valid", "session_expire", "redirects to login after 24h"]
+
+  # NAV
+  - ["Session=valid", "navigate_to_budget", "renders budget grid for current month"]
+  - ["Session=valid", "navigate_to_accounts", "renders account cards by type"]
+  - ["Session=valid", "navigate_to_account_ledger", "renders transaction list for account"]
+  - ["Session=valid", "navigate_to_schedules", "renders schedule list"]
+  - ["Session=valid", "navigate_to_import", "renders CSV import wizard"]
+  - ["Session=valid", "navigate_to_settings", "renders settings shell"]
+  - ["Session=none", "navigate_to_login", "renders login form"]
+
+spec_addressed_contexts:
+  PageLifecycle: ["active", "frozen", "terminated"]
+  ResponseSource: ["network", "idb_cache"]
+  Connectivity: ["online", "offline"]
+  MonthState: ["unlocked", "locked"]
+  TransactionType: ["normal", "transfer", "split"]
+
+offline_addressed:
+  - "POST /api/transactions"
+  - "PATCH /api/transactions/:id"
+  - "DELETE /api/transactions/:id"
+  - "POST /api/transactions/bulk"
+  - "PUT /api/assignments"
+  - "POST /api/assignments/move"
+  - "POST /api/accounts"
+  - "PATCH /api/accounts/:id"
+  - "DELETE /api/accounts/:id"
+  - "POST /api/payees"
+  - "PATCH /api/payees/:id"
+  - "POST /api/categories"
+  - "PATCH /api/categories/:id"
+  - "POST /api/category-groups"
+  - "PATCH /api/category-groups/:id"
+  - "POST /api/schedules"
+  - "PATCH /api/schedules/:id"
+  - "POST /api/import/csv"
+  - "GET /api/export"
+  - "POST /api/import-rules"
+  - "PATCH /api/import-rules/:id"
+  - "DELETE /api/import-rules/:id"
+  - "inline_edit_assignment"
+  - "inline_edit_transaction"
+  - "inline_edit_account_name"
+  - "drag_category_sort"
+  - "drag_category_group_sort"
+  - "drag_account_sort"
+  - "sse_reconnect"
+  - "offline_queue_flush"
+
+intensity:
+  "POST /api/transactions": 4.0
+  "PATCH /api/transactions/:id": 4.0
+  "DELETE /api/transactions/:id": 4.0
+  "POST /api/transactions/bulk": 4.0
+  "PUT /api/transactions/:id/splits": 4.0
+  "PUT /api/assignments": 4.0
+  "POST /api/assignments/move": 4.0
+  "POST /api/accounts": 4.0
+  "PATCH /api/accounts/:id": 4.0
+  "DELETE /api/accounts/:id": 4.0
+  "PUT /api/accounts/reorder": 4.0
+  "GET /api/transactions": 4.0
+  "GET /api/accounts": 4.0
+  "GET /api/assignments": 4.0
+  "GET /api/category-groups": 4.0
+  "POST /api/categories": 4.0
+  "PATCH /api/categories/:id": 4.0
+  "DELETE /api/categories/:id": 4.0
+  "PUT /api/categories/reorder": 4.0
+  "POST /api/category-groups": 4.0
+  "PATCH /api/category-groups/:id": 4.0
+  "DELETE /api/category-groups/:id": 4.0
+  "PUT /api/category-groups/reorder": 4.0
+  "inline_edit_assignment": 4.0
+  "inline_edit_transaction": 4.0
+  "inline_edit_category_target": 4.0
+  "drag_category_sort": 4.0
+  "drag_category_group_sort": 4.0
+  "drag_account_sort": 4.0
+  "bulk_select_transactions": 4.0
+  "split_editor_add_row": 4.0
+  "POST /auth/login": 3.0
+  "POST /auth/logout": 3.0
+  "GET /auth/check": 3.0
+  "session_expire": 3.0
+  "POST /api/import/csv": 2.0
+  "GET /api/export": 2.0
+  "POST /api/import-rules": 2.0
+  "PATCH /api/import-rules/:id": 2.0
+  "DELETE /api/import-rules/:id": 2.0
+  "GET /api/import-rules": 2.0
+  "GET /api/events": 2.0
+  "GET /api/hydrate": 2.0
+  "sse_reconnect": 2.0
+  "sse_heartbeat": 2.0
+  "offline_queue_flush": 2.0
+  "POST /api/schedules": 2.0
+  "PATCH /api/schedules/:id": 2.0
+  "DELETE /api/schedules/:id": 2.0
+  "POST /api/schedules/generate": 2.0
+  "GET /api/schedules": 2.0
+  "toggle_schedule_pause": 2.0
+  "navigate_to_budget": 1.0
+  "navigate_to_budget_month": 1.0
+  "navigate_to_accounts": 1.0
+  "navigate_to_account_ledger": 1.0
+  "navigate_to_account_transactions": 1.0
+  "navigate_to_schedules": 1.0
+  "navigate_to_import": 1.0
+  "navigate_to_settings": 1.0
+  "navigate_to_settings_categories": 1.0
+  "navigate_to_settings_payees": 1.0
+  "navigate_to_settings_import_rules": 1.0
+  "navigate_to_settings_export": 1.0
+  "navigate_to_login": 1.0
+  "command_palette_open": 1.0
+  "inline_edit_account_name": 1.0
+  "inline_edit_import_rule": 1.0
+  "POST /api/payees": 1.0
+  "PATCH /api/payees/:id": 1.0
+  "DELETE /api/payees/:id": 1.0
+  "GET /api/payees": 1.0
+  "GET /api/month-locks": 1.0
+  "POST /api/month-locks": 1.0
+  "DELETE /api/month-locks/:month": 1.0
+  "undo_timer_expire": 1.0
+  "assignment_debounce": 1.0
+
+enables:
+  "POST /auth/login":
+    - "GET /api/hydrate"
+    - "GET /api/events"
+    - "navigate_to_budget"
+  "GET /api/hydrate":
+    - "navigate_to_budget"
+    - "navigate_to_accounts"
+    - "navigate_to_schedules"
+  "navigate_to_budget":
+    - "inline_edit_assignment"
+    - "POST /api/assignments/move"
+  "navigate_to_account_ledger":
+    - "inline_edit_transaction"
+    - "POST /api/transactions"
+    - "bulk_select_transactions"
+  "navigate_to_settings_categories":
+    - "drag_category_sort"
+    - "drag_category_group_sort"
+    - "inline_edit_category_target"
+  "navigate_to_schedules":
+    - "POST /api/schedules"
+    - "toggle_schedule_pause"
+    - "POST /api/schedules/generate"
+  "navigate_to_import":
+    - "POST /api/import/csv"
+  "navigate_to_settings_export":
+    - "GET /api/export"
+  "navigate_to_settings_import_rules":
+    - "inline_edit_import_rule"
+    - "POST /api/import-rules"
+  "bulk_select_transactions":
+    - "POST /api/transactions/bulk"
+  "inline_edit_transaction":
+    - "split_editor_add_row"
+
+completes:
+  "undo_timer_expire":
+    - "inline_edit_assignment"
+    - "inline_edit_transaction"
+    - "POST /api/transactions"
+    - "DELETE /api/transactions/:id"
+    - "POST /api/transactions/bulk"
+    - "POST /api/assignments/move"
+  "assignment_debounce":
+    - "inline_edit_assignment"
+  "offline_queue_flush":
+    - "POST /api/transactions"
+    - "PATCH /api/transactions/:id"
+    - "DELETE /api/transactions/:id"
+    - "PUT /api/assignments"
+    - "POST /api/assignments/move"
+    - "POST /api/accounts"
+  "sse_reconnect":
+    - "GET /api/events"
+  "session_expire":
+    - "POST /auth/login"
+
+reachability_constraints:
+  - rule: "Protected endpoints require valid session"
+    condition: "Session == 'none' and operation != 'POST /auth/login' and operation != 'GET /auth/check' and operation != 'navigate_to_login'"
+  - rule: "Locked month blocks assignment writes"
+    condition: "MonthLock == 'locked' and (operation == 'PUT /api/assignments' or operation == 'POST /api/assignments/move' or operation == 'inline_edit_assignment')"
+  - rule: "Expired schedule does not generate"
+    condition: "Schedule == 'expired' and operation == 'POST /api/schedules/generate'"
+  - rule: "Paused schedule does not generate"
+    condition: "Schedule == 'paused' and operation == 'POST /api/schedules/generate'"
+  - rule: "Cannot delete account with transactions"
+    condition: "Account == 'active' and Transaction == 'exists_for_account' and operation == 'DELETE /api/accounts/:id'"
+  - rule: "Cannot delete category group with children"
+    condition: "CategoryGroup == 'active' and Category == 'active_in_group' and operation == 'DELETE /api/category-groups/:id'"
+  - rule: "Cannot delete category with transactions"
+    condition: "Category == 'active' and Transaction == 'references_category' and operation == 'DELETE /api/categories/:id'"
+  - rule: "SSE requires valid session"
+    condition: "Session == 'none' and operation == 'GET /api/events'"
+  - rule: "Transfer cannot target same account"
+    condition: "Account == 'same_source_and_target' and operation == 'POST /api/transactions'"
