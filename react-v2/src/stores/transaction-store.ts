@@ -1,6 +1,6 @@
 import { makeAutoObservable, observable, runInAction } from 'mobx';
 import type { Transaction, SplitEntry } from '@/types';
-import { SyncStore, enqueue } from '@/sync';
+import { SyncStore, enqueue, serverFirst } from '@/sync';
 
 export class TransactionStore {
   items = observable.map<string, Transaction>();
@@ -101,36 +101,61 @@ export class TransactionStore {
   }
 
   createTransaction(txn: Transaction, txnSplits?: SplitEntry[]): void {
-    this.items.set(txn.id, txn);
-    this.syncStore.put(txn);
-    if (txnSplits) {
-      for (const split of txnSplits) {
-        this.splits.set(split.id, split);
-        this.splitSyncStore.put(split);
-      }
-    }
-    enqueue({
-      id: crypto.randomUUID(),
-      method: 'POST',
-      path: '/api/transactions',
-      body: {
-        id: txn.id,
-        account_id: txn.account_id,
-        payee_id: txn.payee_id || null,
-        category_id: txn.category_id || null,
-        date: txn.date,
-        amount: txn.amount,
-        memo: txn.memo || null,
-        cleared: txn.cleared === 1,
-        linked_id: txn.linked_id || null,
-        source: txn.source || null,
-        splits: txnSplits?.map((s) => ({
-          category_id: s.category_id || null,
-          amount: s.amount,
-          memo: s.memo || null,
-        })) ?? [],
+    const body = {
+      id: txn.id,
+      account_id: txn.account_id,
+      payee_id: txn.payee_id || null,
+      category_id: txn.category_id || null,
+      date: txn.date,
+      amount: txn.amount,
+      memo: txn.memo || null,
+      cleared: txn.cleared === 1,
+      linked_id: txn.linked_id || null,
+      source: txn.source || null,
+      splits: txnSplits?.map((s) => ({
+        category_id: s.category_id || null,
+        amount: s.amount,
+        memo: s.memo || null,
+      })) ?? [],
+    };
+
+    void serverFirst({
+      optimistic: () => {
+        this.items.set(txn.id, txn);
+        this.syncStore.put(txn);
+        if (txnSplits) {
+          for (const split of txnSplits) {
+            this.splits.set(split.id, split);
+            this.splitSyncStore.put(split);
+          }
+        }
       },
-      timestamp: Date.now(),
+      request: () =>
+        fetch('/api/transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(body),
+        }),
+      rollback: () => {
+        this.items.delete(txn.id);
+        this.syncStore.delete(txn.id);
+        if (txnSplits) {
+          for (const split of txnSplits) {
+            this.splits.delete(split.id);
+            this.splitSyncStore.delete(split.id);
+          }
+        }
+      },
+      onOffline: () => {
+        enqueue({
+          id: crypto.randomUUID(),
+          method: 'POST',
+          path: '/api/transactions',
+          body,
+          timestamp: Date.now(),
+        });
+      },
     });
   }
 
@@ -138,32 +163,72 @@ export class TransactionStore {
     const existing = this.items.get(id);
     if (!existing) return;
     const updated = { ...existing, ...patch };
-    this.items.set(id, updated);
-    this.syncStore.put(updated);
-    enqueue({
-      id: crypto.randomUUID(),
-      method: 'PATCH',
-      path: `/api/transactions/${id}`,
-      body: patch,
-      timestamp: Date.now(),
+    const oldRecord = existing;
+
+    void serverFirst({
+      optimistic: () => {
+        this.items.set(id, updated);
+        this.syncStore.put(updated);
+      },
+      request: () =>
+        fetch(`/api/transactions/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(patch),
+        }),
+      rollback: () => {
+        this.items.set(id, oldRecord);
+        this.syncStore.put(oldRecord);
+      },
+      onOffline: () => {
+        enqueue({
+          id: crypto.randomUUID(),
+          method: 'PATCH',
+          path: `/api/transactions/${id}`,
+          body: patch,
+          timestamp: Date.now(),
+        });
+      },
     });
   }
 
   deleteTransaction(id: string): void {
-    // Also remove splits
+    const existing = this.items.get(id);
+    if (!existing) return;
     const txnSplits = this.splitsForTransaction(id);
-    for (const split of txnSplits) {
-      this.splits.delete(split.id);
-      this.splitSyncStore.delete(split.id);
-    }
-    this.items.delete(id);
-    this.syncStore.delete(id);
-    enqueue({
-      id: crypto.randomUUID(),
-      method: 'DELETE',
-      path: `/api/transactions/${id}`,
-      body: null,
-      timestamp: Date.now(),
+
+    void serverFirst({
+      optimistic: () => {
+        for (const split of txnSplits) {
+          this.splits.delete(split.id);
+          this.splitSyncStore.delete(split.id);
+        }
+        this.items.delete(id);
+        this.syncStore.delete(id);
+      },
+      request: () =>
+        fetch(`/api/transactions/${id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        }),
+      rollback: () => {
+        this.items.set(id, existing);
+        this.syncStore.put(existing);
+        for (const split of txnSplits) {
+          this.splits.set(split.id, split);
+          this.splitSyncStore.put(split);
+        }
+      },
+      onOffline: () => {
+        enqueue({
+          id: crypto.randomUUID(),
+          method: 'DELETE',
+          path: `/api/transactions/${id}`,
+          body: null,
+          timestamp: Date.now(),
+        });
+      },
     });
   }
 

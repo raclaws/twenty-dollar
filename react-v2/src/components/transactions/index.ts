@@ -1,6 +1,7 @@
 export { TransactionsPage } from './TransactionsPage';
 export { TransactionTable } from './TransactionTable';
 export { TransactionRow } from './TransactionRow';
+export { GroupHeader } from './GroupHeader';
 export { AddTransactionRow } from './AddTransactionRow';
 export { InlineEditCell } from './InlineEditCell';
 export { RunningBalance } from './RunningBalance';

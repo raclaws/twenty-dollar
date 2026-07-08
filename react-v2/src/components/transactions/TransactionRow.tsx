@@ -8,6 +8,7 @@ import { ClearedIndicator } from './ClearedIndicator';
 import { RunningBalance } from './RunningBalance';
 import { PayeePicker } from '@/components/shared/PayeePicker';
 import { CategoryPicker } from '@/components/shared/CategoryPicker';
+import { ContextMenu, type ContextMenuPosition } from './ContextMenu';
 
 interface TransactionRowProps {
   transaction: Transaction;
@@ -28,6 +29,7 @@ export const TransactionRow = observer(function TransactionRow({
 }: TransactionRowProps) {
   const { transactionStore, payeeStore, accountStore, categoryStore } = useStore();
   const [editingField, setEditingField] = useState<EditingField>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null);
 
   const payeeTriggerRef = useRef<HTMLDivElement>(null);
   const categoryTriggerRef = useRef<HTMLDivElement>(null);
@@ -106,6 +108,18 @@ export const TransactionRow = observer(function TransactionRow({
     [transaction.id, onToggleSelect],
   );
 
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      setContextMenu({ x: e.clientX, y: e.clientY });
+    },
+    [],
+  );
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
   const rowBg = selected ? 'bg-blue-900/20' : 'hover:bg-zinc-800/50';
 
   const gridCols = showAccountColumn
@@ -116,6 +130,7 @@ export const TransactionRow = observer(function TransactionRow({
     <div
       className={`grid ${gridCols} gap-1 px-2 py-1 items-center border-b border-zinc-800/50 transition-colors ${rowBg}`}
       role="row"
+      onContextMenu={handleContextMenu}
     >
       {/* Checkbox */}
       <div className="flex items-center justify-center" role="gridcell">
@@ -229,6 +244,16 @@ export const TransactionRow = observer(function TransactionRow({
           onToggle={handleToggleCleared}
         />
       </div>
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <ContextMenu
+          position={contextMenu}
+          transactionId={transaction.id}
+          selectedCount={transactionStore.selectedCount}
+          onClose={handleCloseContextMenu}
+        />
+      )}
     </div>
   );
 });
