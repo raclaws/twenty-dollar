@@ -1,47 +1,38 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useStore } from '@/lib/store-context';
-import { useNavigate, useSearch } from '@tanstack/react-router';
-import { TransactionTable } from './TransactionTable';
+import { TransactionTable, type SortField, type SortDirection, type GroupByMode, type SortState, type GroupState } from './TransactionTable';
 import { AddTransactionRow } from './AddTransactionRow';
-import { BulkActionsBar } from './BulkActionsBar';
-import { TransactionFilters } from './TransactionFilters';
-import type { SortField, SortDirection, GroupByMode, SortState, GroupState } from './TransactionTable';
+import type { Transaction } from '@/types';
 
-export const TransactionsPage = observer(function TransactionsPage() {
-  const { transactionStore, accountStore, payeeStore, categoryStore } = useStore();
-  const navigate = useNavigate();
-  const search: Record<string, unknown> = useSearch({ strict: false });
+interface TransactionsPageProps {
+  accountId?: string;
+  categoryId?: string;
+  compact?: boolean;
+}
 
-  const accountId = (search.account as string) || null;
-  const accountName = accountId ? accountStore.getById(accountId)?.name : null;
+export const TransactionsPage = observer(function TransactionsPage({
+  accountId,
+  categoryId,
+  compact = false,
+}: TransactionsPageProps) {
+  const { transactionStore, payeeStore, categoryStore, accountStore } = useStore();
 
   // --- Sort state ---
   const [sortState, setSortState] = useState<SortState>({ field: 'date', dir: 'desc' });
 
   // --- Group state ---
-  const [groupBy, setGroupBy] = useState<GroupByMode>('none');
+  const [groupBy, setGroupBy] = useState<GroupByMode>('month');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
-  const groupState: GroupState = useMemo(() => ({ groupBy, collapsed }), [groupBy, collapsed]);
+  // --- Category filter ---
+  const [categoryFilter, setCategoryFilter] = useState<Set<string>>(new Set());
 
-  const handleAccountChange = useCallback(
-    (id: string | null) => {
-      void navigate({
-        to: '/transactions',
-        search: id ? { account: id } : {},
-      });
-    },
-    [navigate],
-  );
+  const groupState: GroupState = { groupBy, collapsed };
 
   // --- Sort handler ---
-  const handleSortChange = useCallback((field: SortField, dir: SortDirection | null) => {
-    if (field === null || dir === null) {
-      setSortState({ field: 'date', dir: 'desc' }); // reset to default
-    } else {
-      setSortState({ field, dir });
-    }
+  const handleSortChange = useCallback((field: SortField, dir: SortDirection) => {
+    setSortState({ field, dir });
   }, []);
 
   // --- Group handler ---
@@ -54,126 +45,102 @@ export const TransactionsPage = observer(function TransactionsPage() {
   const handleToggleCollapse = useCallback((key: string) => {
     setCollapsed((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
+      if (next.has(key)) next.delete(key); else next.add(key);
       return next;
     });
   }, []);
 
-  // Get transactions — all or filtered by account
-  const rawTransactions = useMemo(() => {
+  // --- Select group (no-op at page level, table handles internally) ---
+  const handleSelectGroup = useCallback((_key: string) => {}, []);
+
+  // --- Build transaction list with sorting ---
+  const transactions: Transaction[] = (() => {
+    // Filter
+    let txns = Array.from(transactionStore.items.values());
     if (accountId) {
-      return transactionStore.transactionsForAccount(accountId);
+      txns = txns.filter((tx) => tx.account_id === accountId);
     }
-    return Array.from(transactionStore.transactions.values()).sort(
-      (a, b) => b.date.localeCompare(a.date) || b.created_at.localeCompare(a.created_at),
-    );
-  }, [accountId, transactionStore, transactionStore.items.size]);
+    if (categoryId) {
+      txns = txns.filter((tx) => tx.category_id === categoryId);
+    }
+    if (categoryFilter.size > 0) {
+      txns = txns.filter((tx) => categoryFilter.has(tx.category_id ?? ''));
+    }
 
-  // Apply sorting
-  const transactions = useMemo(() => {
-    if (!sortState.field) return rawTransactions;
-    const sorted = [...rawTransactions];
-    const dir = sortState.dir === 'asc' ? 1 : -1;
+    // Sort
+    const { field, dir } = sortState;
+    const mult = dir === 'asc' ? 1 : -1;
 
-    sorted.sort((a, b) => {
-      switch (sortState.field) {
+    txns.sort((a, b) => {
+      let cmp = 0;
+      switch (field) {
         case 'date':
-          return dir * a.date.localeCompare(b.date);
+          cmp = a.date.localeCompare(b.date);
+          if (cmp === 0) cmp = a.created_at.localeCompare(b.created_at);
+          break;
         case 'payee': {
           const nameA = payeeStore.getById(a.payee_id)?.name ?? '';
           const nameB = payeeStore.getById(b.payee_id)?.name ?? '';
-          return dir * nameA.localeCompare(nameB);
+          cmp = nameA.localeCompare(nameB);
+          break;
         }
         case 'category': {
-          const catA = a.category_id ? categoryStore.getCategory(a.category_id)?.name ?? '' : '';
-          const catB = b.category_id ? categoryStore.getCategory(b.category_id)?.name ?? '' : '';
-          return dir * catA.localeCompare(catB);
+          const catA = a.category_id ? (categoryStore.getCategory(a.category_id)?.name ?? '') : '';
+          const catB = b.category_id ? (categoryStore.getCategory(b.category_id)?.name ?? '') : '';
+          cmp = catA.localeCompare(catB);
+          break;
         }
         case 'amount':
-          return dir * (a.amount - b.amount);
-        default:
-          return 0;
+          cmp = a.amount - b.amount;
+          break;
       }
+      return mult * cmp;
     });
-    return sorted;
-  }, [rawTransactions, sortState, payeeStore, categoryStore]);
 
-  // Compute running balances (from oldest to newest, then map back to display order)
-  const runningBalances = useMemo(() => {
-    const reversed = [...transactions].reverse();
-    const balances: number[] = new Array(reversed.length);
-    let running = 0;
-    for (let i = 0; i < reversed.length; i++) {
-      running += reversed[i].amount;
-      balances[i] = running;
+    return txns;
+  })();
+
+  // --- Running balances ---
+  const runningBalances: number[] = (() => {
+    const balances = new Array<number>(transactions.length);
+    let total = 0;
+    for (let i = 0; i < transactions.length; i++) {
+      total += transactions[i].amount;
+      balances[i] = total;
     }
-    balances.reverse();
     return balances;
-  }, [transactions]);
+  })();
 
-  const selectedCount = transactionStore.selectedCount;
-
-  const handleBulkDelete = useCallback(() => {
-    const ids = Array.from(transactionStore.selectedIds);
-    transactionStore.bulkAction('delete', ids);
-    transactionStore.clearSelection();
-  }, [transactionStore]);
-
-  const handleBulkClear = useCallback(() => {
-    const ids = Array.from(transactionStore.selectedIds);
-    transactionStore.bulkAction('clear', ids);
-    transactionStore.clearSelection();
-  }, [transactionStore]);
-
-  const handleBulkUnclear = useCallback(() => {
-    const ids = Array.from(transactionStore.selectedIds);
-    transactionStore.bulkAction('unclear', ids);
-    transactionStore.clearSelection();
-  }, [transactionStore]);
-
-  const handleDeselectAll = useCallback(() => {
-    transactionStore.clearSelection();
-  }, [transactionStore]);
+  // Account name for header
+  const accountName = accountId ? accountStore.getById(accountId)?.name : null;
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
         <h1 className="text-xl font-medium text-zinc-100 font-[Figtree]">
-          {accountName ? accountName : 'Transactions'}
+          {accountName ?? 'Transactions'}
         </h1>
-        <TransactionFilters
-          selectedAccountId={accountId}
-          onAccountChange={handleAccountChange}
-        />
       </div>
 
       {/* Add Transaction Row */}
-      <AddTransactionRow accountId={accountId} />
+      {accountId && !compact && (
+        <AddTransactionRow accountId={accountId} />
+      )}
 
-      {/* Bulk Actions Bar */}
-      <BulkActionsBar
-        selectedCount={selectedCount}
-        onDelete={handleBulkDelete}
-        onClear={handleBulkClear}
-        onUnclear={handleBulkUnclear}
-        onDeselectAll={handleDeselectAll}
-      />
-
-      {/* Transaction Table with virtual scroll */}
+      {/* Transaction Table */}
       <TransactionTable
         transactions={transactions}
         runningBalances={runningBalances}
-        showAccountColumn={!accountId}
+        showAccountColumn={!accountId || compact}
+        hideCategory={compact}
+        hideBalance={compact}
         sortState={sortState}
         groupState={groupState}
         onSortChange={handleSortChange}
         onGroupByChange={handleGroupByChange}
         onToggleCollapse={handleToggleCollapse}
+        onSelectGroup={handleSelectGroup}
       />
     </div>
   );
