@@ -3,6 +3,7 @@ import { observer } from 'mobx-react-lite';
 import { useStore } from '@/lib/store-context';
 import { useNavigate } from '@tanstack/react-router';
 import { Plus, CreditCard } from 'lucide-react';
+import './accounts.css';
 import { ACCOUNT_TYPE_ICONS } from '@/lib/icons';
 import { formatCurrency } from '@/lib/format';
 import { clampMenuPosition } from '@/lib/ui';

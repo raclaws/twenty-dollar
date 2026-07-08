@@ -3,6 +3,7 @@ import { observer } from 'mobx-react-lite';
 import { Wallet, X, Plus } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
 import { computeBudget } from '@/engine/budget';
+import './budget.css';
 import { formatCurrency } from '@/lib/format';
 import type { CategoryBudget } from '@/engine/types';
 import type { SplitEntry } from '@/types';

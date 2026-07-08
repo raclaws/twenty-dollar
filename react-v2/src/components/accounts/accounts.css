@@ -1,0 +1,263 @@
+/* Accounts View */
+.accounts-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.accounts-view__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgb(39 39 42);
+}
+
+.accounts-view__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: rgb(228 228 231);
+}
+
+/* Accounts table */
+.accounts-table {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.accounts-table__header {
+  display: grid;
+  grid-template-columns: 1fr 100px 120px 100px 60px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid rgb(39 39 42);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgb(113 113 122);
+  position: sticky;
+  top: 0;
+  background: #0a0a0f;
+  z-index: 10;
+}
+
+.accounts-table__col--balance,
+.accounts-table__col--count {
+  text-align: right;
+}
+
+.accounts-table__body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Account row */
+.account-row,
+.accounts-table__row {
+  display: grid;
+  grid-template-columns: 1fr 100px 120px 100px 60px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgb(30 30 34);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.account-row:hover,
+.accounts-table__row:hover {
+  background: rgb(24 24 27 / 0.6);
+}
+
+.account-row--closed {
+  opacity: 0.5;
+}
+
+.account-row__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: rgb(228 228 231);
+}
+
+.account-row__icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgb(39 39 42);
+  color: rgb(161 161 170);
+  flex-shrink: 0;
+}
+
+.account-row__type {
+  font-size: 12px;
+  color: rgb(113 113 122);
+  text-transform: capitalize;
+}
+
+.account-row__balance {
+  text-align: right;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+}
+
+.account-row__balance--positive { color: rgb(74 222 128); }
+.account-row__balance--negative { color: rgb(248 113 113); }
+.account-row__balance--zero { color: rgb(113 113 122); }
+
+.account-row__count {
+  text-align: right;
+  font-size: 12px;
+  color: rgb(113 113 122);
+}
+
+.account-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.account-row:hover .account-row__actions {
+  opacity: 1;
+}
+
+/* Account dialog */
+.account-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.account-dialog__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.6);
+}
+
+.account-dialog__content {
+  position: relative;
+  background: rgb(24 24 27);
+  border: 1px solid rgb(63 63 70);
+  border-radius: 8px;
+  padding: 24px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 50px rgb(0 0 0 / 0.5);
+}
+
+.account-dialog__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: rgb(228 228 231);
+  margin-bottom: 16px;
+}
+
+.account-dialog__field {
+  margin-bottom: 12px;
+}
+
+.account-dialog__label {
+  display: block;
+  font-size: 12px;
+  color: rgb(161 161 170);
+  margin-bottom: 4px;
+}
+
+.account-dialog__input {
+  width: 100%;
+  background: rgb(9 9 11);
+  border: 1px solid rgb(63 63 70);
+  color: rgb(228 228 231);
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+}
+
+.account-dialog__input:focus {
+  border-color: rgb(99 102 241);
+}
+
+.account-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+/* Add transaction trigger */
+.add-txn-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  color: rgb(99 102 241);
+  font-size: 13px;
+  border-bottom: 1px solid rgb(30 30 34);
+}
+
+.add-txn-trigger:hover {
+  background: rgb(99 102 241 / 0.05);
+}
+
+.add-txn-trigger__icon {
+  color: rgb(99 102 241);
+}
+
+.add-txn-trigger__label {
+  flex: 1;
+}
+
+.add-txn-trigger__shortcut {
+  font-size: 11px;
+  color: rgb(113 113 122);
+}
+
+/* Closed accounts section */
+.closed-section {
+  border-top: 1px solid rgb(39 39 42);
+  margin-top: 8px;
+}
+
+.closed-section__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 12px;
+  color: rgb(113 113 122);
+}
+
+.closed-section__header:hover {
+  color: rgb(161 161 170);
+}
+
+/* Net worth summary */
+.net-worth {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.net-worth__label {
+  font-size: 12px;
+  color: rgb(113 113 122);
+}
+
+.net-worth__value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  font-weight: 600;
+}
