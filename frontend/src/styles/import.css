@@ -76,3 +76,29 @@
 .import-cluster__pill--auto { background: color-mix(in srgb, var(--c-positive) 15%, var(--c-surface0)); color: var(--c-positive); }
 
 .import-categorize__footer { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; border-top: 1px solid var(--c-surface0); }
+
+/* ─── YNAB Import ─── */
+.ynab-import__desc { font-size: var(--fs-sm); color: var(--c-subtext0); margin: 0 0 20px; line-height: 1.5; }
+.ynab-import__fields { display: flex; flex-direction: column; gap: 16px; }
+.ynab-import__field { display: flex; flex-direction: column; gap: 6px; }
+.ynab-import__label { font-size: var(--fs-xs); font-weight: var(--fw-medium); color: var(--c-overlay0); }
+.ynab-import__file-row { display: flex; align-items: center; gap: 10px; }
+.ynab-import__filename { font-size: var(--fs-sm); color: var(--c-subtext0); }
+
+.ynab-import__preview { margin-top: 20px; padding: 20px; background: var(--c-surface0); border-radius: var(--r-md); }
+.ynab-import__preview-title { font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--c-text); margin: 0 0 12px; }
+.ynab-import__table { width: 100%; font-size: var(--fs-sm); }
+.ynab-import__table td { padding: 4px 0; color: var(--c-subtext0); }
+.ynab-import__table-value { text-align: right; font-weight: var(--fw-semibold); color: var(--c-text); font-variant-numeric: tabular-nums; }
+
+.ynab-import__accounts { margin-top: 16px; }
+.ynab-import__accounts-title { font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--c-text); margin: 0 0 6px; }
+.ynab-import__accounts-item { font-size: var(--fs-xs); color: var(--c-subtext0); padding: 2px 0; }
+.ynab-import__accounts-type { color: var(--c-overlay0); }
+
+.ynab-import__actions { display: flex; gap: 8px; margin-top: 20px; }
+
+.ynab-import__status { margin-top: 20px; padding: 20px; background: var(--c-surface0); border-radius: var(--r-md); }
+.ynab-import__status--success { border: 1px solid var(--c-positive); }
+.ynab-import__progress { margin: 0; font-size: var(--fs-sm); color: var(--c-subtext0); }
+.ynab-import__done { margin: 0; font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--c-positive); display: flex; align-items: center; gap: 6px; }

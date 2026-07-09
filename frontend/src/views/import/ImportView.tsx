@@ -384,6 +384,7 @@ const ImportView: Component = () => {
     <div class="import-view">
       <div class="import-view__topbar">
         <h1 class="import-view__title">Smart Import</h1>
+        <a href="/import/ynab" class="btn btn--sm btn--secondary" style="margin-left: auto;">Import from YNAB</a>
       </div>
 
       <div class="import-view__content">

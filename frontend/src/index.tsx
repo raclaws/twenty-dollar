@@ -42,6 +42,7 @@ render(
       <Route path="/transactions" component={TransactionsView} />
       <Route path="/accounts" component={AccountsView} />
       <Route path="/import" component={ImportView} />
+      <Route path="/import/ynab" component={YnabImportView} />
       <Route path="/settings" component={SettingsView} />
       <Route path="/design" component={DesignSample} />
     </Router>
