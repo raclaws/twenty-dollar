@@ -94,7 +94,7 @@ pub fn extract_session_id(headers: &HeaderMap) -> Option<String> {
 fn set_cookie_headers(session_id: &str) -> HeaderMap {
     let mut headers = HeaderMap::new();
     let cookie = format!(
-        "{}={}; HttpOnly; SameSite=Strict; Path=/; Max-Age={}",
+        "{}={}; HttpOnly; SameSite=Strict; Secure; Path=/; Max-Age={}",
         SESSION_COOKIE, session_id, MAX_AGE
     );
     headers.insert("set-cookie", cookie.parse().unwrap());
@@ -104,7 +104,7 @@ fn set_cookie_headers(session_id: &str) -> HeaderMap {
 fn clear_cookie_headers() -> HeaderMap {
     let mut headers = HeaderMap::new();
     let cookie = format!(
-        "{}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0",
+        "{}=; HttpOnly; SameSite=Strict; Secure; Path=/; Max-Age=0",
         SESSION_COOKIE
     );
     headers.insert("set-cookie", cookie.parse().unwrap());

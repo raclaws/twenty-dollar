@@ -1,7 +1,9 @@
 use axum::{routing::{get, post, patch, delete}, Router, Json, middleware};
-use tower_http::cors::CorsLayer;
+use axum::extract::DefaultBodyLimit;
 use tower_http::trace::TraceLayer;
+use tower_http::set_header::SetResponseHeaderLayer;
 use tower_http::services::{ServeDir, ServeFile};
+use axum::http::HeaderValue;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
@@ -123,6 +125,19 @@ pub fn build_router(pool: DbPool) -> Router {
     public
         .merge(protected)
         .fallback_service(serve_spa)
+        .layer(SetResponseHeaderLayer::overriding(
+            axum::http::header::X_CONTENT_TYPE_OPTIONS,
+            HeaderValue::from_static("nosniff"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            axum::http::header::X_FRAME_OPTIONS,
+            HeaderValue::from_static("DENY"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            axum::http::header::STRICT_TRANSPORT_SECURITY,
+            HeaderValue::from_static("max-age=31536000; includeSubDomains"),
+        ))
+        .layer(DefaultBodyLimit::max(2 * 1024 * 1024))
         .layer(TraceLayer::new_for_http())
         .with_state(state)
 }

@@ -1,12 +1,21 @@
 use axum::{extract::State, Extension, Json};
+use axum::http::HeaderMap;
 use serde_json::json;
 use crate::app::AppState;
 use crate::error::AppError;
 
 pub async fn reset_data(
+    headers: HeaderMap,
     State(state): State<AppState>,
     Extension(user_id): Extension<String>,
 ) -> Result<Json<serde_json::Value>, AppError> {
+    let confirm = headers.get("x-confirm-destructive")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    if confirm != "yes-delete-all-data" {
+        return Err(AppError::Validation("Missing X-Confirm-Destructive: yes-delete-all-data header".into()));
+    }
+
     let pool = state.db.clone();
     tokio::task::spawn_blocking(move || {
         let conn = pool.get()?;
