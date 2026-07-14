@@ -1,4 +1,5 @@
 import { createSignal, Show, type Component } from 'solid-js'
+import { A } from '@solidjs/router'
 import { getCurrencyCode, setCurrencyCode, CURRENCIES } from '~/lib/format'
 import { useStore } from '~/App'
 import { apiPost, apiGet } from '~/lib/api'
@@ -183,6 +184,7 @@ const SettingsView: Component = () => {
               {importing() ? 'Importing...' : 'Import CSV'}
             </button>
             <button class="btn btn--secondary" onClick={handleExport}>Export JSON</button>
+            <A href="/import/ynab" class="btn btn--secondary">Import from YNAB</A>
             <input ref={fileInput} type="file" accept=".csv,.txt" style={{ display: 'none' }} onChange={handleImportFile} />
           </div>
           <Show when={importResult()}>
