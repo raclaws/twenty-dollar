@@ -52,7 +52,7 @@ export default function LoginView() {
       const data = await res.json()
       localStorage.setItem('user_name', data.user.name)
       localStorage.setItem('user_email', data.user.email)
-      navigate('/', { replace: true })
+      window.location.href = '/'
     } catch {
       setError('Network error — check your connection')
     } finally {
