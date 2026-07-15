@@ -88,6 +88,7 @@ export default function LoginView() {
               <input
                 type={showPw() ? 'text' : 'password'}
                 placeholder="Password"
+                autocomplete="current-password"
                 value={password()}
                 onInput={(e) => setPassword(e.currentTarget.value)}
               />
