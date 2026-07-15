@@ -17,7 +17,7 @@ import AccountsView from './views/accounts/AccountsView'
 import TransactionsView from './views/accounts/TransactionsView'
 import SettingsView from './views/settings/SettingsView'
 import ImportView from './views/import/ImportView'
-import YnabImportView from './views/import/YnabImportView'
+import SchedulesView from './views/schedules/SchedulesView'
 import LoginView from './views/auth/LoginView'
 import SetupView from './views/auth/SetupView'
 import DesignSample from './views/DesignSample'
@@ -30,6 +30,7 @@ import './styles/entity-picker.css'
 import './styles/datepicker.css'
 import './styles/settings.css'
 import './styles/import.css'
+import './styles/schedules.css'
 import './styles/auth.css'
 import './styles/icon-picker.css'
 
@@ -42,7 +43,7 @@ render(
       <Route path="/transactions" component={TransactionsView} />
       <Route path="/accounts" component={AccountsView} />
       <Route path="/import" component={ImportView} />
-      <Route path="/import/ynab" component={YnabImportView} />
+      <Route path="/recurring" component={SchedulesView} />
       <Route path="/settings" component={SettingsView} />
       <Route path="/design" component={DesignSample} />
     </Router>

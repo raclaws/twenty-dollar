@@ -21,7 +21,14 @@ export function createRestAdapter(_baseUrl: string): SyncAdapter {
       if (!endpoint) return null as any
 
       const res = await fetch(endpoint)
-      if (!res.ok) return []
+      if (!res.ok) {
+        if (res.status === 401) {
+          localStorage.removeItem('user_name')
+          localStorage.removeItem('user_email')
+          window.location.href = '/login'
+        }
+        throw new Error(`hydrate ${table}: ${res.status}`)
+      }
       const body = await res.json()
 
       if (table === 'category_groups') {

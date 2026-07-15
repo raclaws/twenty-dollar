@@ -1,3 +1,16 @@
+/* ─── Starting Balance Banner ─── */
+.starting-balance-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 var(--sp-6);
+  padding: 10px 14px;
+  background: var(--c-warning-bg);
+  border-radius: var(--r-md);
+  font-size: var(--fs-xs);
+  color: var(--c-warning);
+}
+
 /* ─── Transaction Table ─── */
 .txn-table {
   display: flex;

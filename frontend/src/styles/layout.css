@@ -130,6 +130,10 @@
   font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums;
   color: var(--c-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .sidebar__rta-label {

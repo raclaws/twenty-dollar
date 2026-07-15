@@ -252,15 +252,10 @@ const YnabImportView: Component = () => {
   }
 
   return (
-    <div class="import-view">
-      <div class="import-view__topbar">
-        <h1 class="import-view__title">Import from YNAB</h1>
-      </div>
-
-      <div class="import-view__content">
-        <p class="ynab-import__desc">
-          Import your YNAB budget data from TSV export files. Creates accounts, categories, transactions, transfers, and budget assignments.
-        </p>
+    <div class="import-view__content">
+      <p class="ynab-import__desc">
+        Import your YNAB budget data from TSV export files. Creates accounts, categories, transactions, transfers, and budget assignments.
+      </p>
 
         <Show when={state() === 'idle' || state() === 'error'}>
           <div class="ynab-import__fields">
@@ -343,7 +338,6 @@ const YnabImportView: Component = () => {
           </div>
         </Show>
       </div>
-    </div>
   )
 }
 

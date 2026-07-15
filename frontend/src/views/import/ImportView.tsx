@@ -11,6 +11,7 @@ import { pushUndo } from '~/lib/undo'
 import { confirmAction } from '~/components/ConfirmDialog'
 import EntityPicker, { type EntityPickerSection } from '~/components/EntityPicker'
 import { PayeePicker, CategoryPicker } from '~/components/Pickers'
+import YnabImportView from './YnabImportView'
 
 type ImportState = 'idle' | 'processing' | 'preview' | 'importing' | 'categorize' | 'done'
 
@@ -20,6 +21,8 @@ function dayBefore(dateStr: string): string {
   return d.toISOString().slice(0, 10)
 }
 
+type ImportSource = 'smart' | 'ynab'
+
 const ImportView: Component = () => {
   const { raw, reactive } = useStore()
   const accounts = createQuery(reactive, 'accounts')
@@ -27,6 +30,7 @@ const ImportView: Component = () => {
   const categories = createQuery(reactive, 'categories')
   const categoryGroups = createQuery(reactive, 'category_groups')
 
+  const [source, setSource] = createSignal<ImportSource>('smart')
   const [state, setState] = createSignal<ImportState>('idle')
   const [transactions, setTransactions] = createSignal<Transaction[]>([])
   const [selected, setSelected] = createSignal<Set<number>>(new Set())
@@ -383,10 +387,18 @@ const ImportView: Component = () => {
   return (
     <div class="import-view">
       <div class="import-view__topbar">
-        <h1 class="import-view__title">Smart Import</h1>
-        <a href="/import/ynab" class="btn btn--sm btn--secondary" style="margin-left: auto;">Import from YNAB</a>
+        <h1 class="import-view__title">Import</h1>
+        <div class="import-view__tabs">
+          <button class={`import-view__tab ${source() === 'smart' ? 'import-view__tab--active' : ''}`} onClick={() => setSource('smart')}>Smart Import</button>
+          <button class={`import-view__tab ${source() === 'ynab' ? 'import-view__tab--active' : ''}`} onClick={() => setSource('ynab')}>YNAB Export</button>
+        </div>
       </div>
 
+      <Show when={source() === 'ynab'}>
+        <YnabImportView />
+      </Show>
+
+      <Show when={source() === 'smart'}>
       <div class="import-view__content">
         <Show when={state() === 'idle' || state() === 'processing'}>
           <div
@@ -613,6 +625,7 @@ const ImportView: Component = () => {
           </div>
         </Show>
       </div>
+      </Show>
     </div>
   )
 }

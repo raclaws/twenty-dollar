@@ -184,7 +184,7 @@ const SettingsView: Component = () => {
               {importing() ? 'Importing...' : 'Import CSV'}
             </button>
             <button class="btn btn--secondary" onClick={handleExport}>Export JSON</button>
-            <A href="/import/ynab" class="btn btn--secondary">Import from YNAB</A>
+            <A href="/import" class="btn btn--secondary">Import</A>
             <input ref={fileInput} type="file" accept=".csv,.txt" style={{ display: 'none' }} onChange={handleImportFile} />
           </div>
           <Show when={importResult()}>

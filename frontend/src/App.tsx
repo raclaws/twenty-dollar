@@ -1,6 +1,6 @@
 import { createSignal, createContext, useContext, createMemo, createEffect, onMount, Show, For, type ParentComponent, type Accessor } from 'solid-js'
 import { A, useLocation, useNavigate } from '@solidjs/router'
-import { LayoutGrid, ArrowLeftRight, CreditCard, Settings, Wallet, AlertTriangle, TrendingDown, AlertCircle, CircleDot, Upload } from 'lucide-solid'
+import { LayoutGrid, ArrowLeftRight, CreditCard, Settings, Wallet, AlertTriangle, TrendingDown, AlertCircle, CircleDot, Upload, RefreshCw } from 'lucide-solid'
 import { ACCOUNT_TYPE_ICONS } from './lib/icons'
 import type { AppStore } from './lib/store'
 import { initStore } from './lib/store'
@@ -266,6 +266,10 @@ function Sidebar() {
         <A href="/import" class={`sidebar__link ${isActive('/import') ? 'sidebar__link--active' : ''}`}>
           <Upload size={16} />
           Import
+        </A>
+        <A href="/recurring" class={`sidebar__link ${isActive('/recurring') ? 'sidebar__link--active' : ''}`}>
+          <RefreshCw size={16} />
+          Recurring
         </A>
         <A href="/settings" class={`sidebar__link ${isActive('/settings') ? 'sidebar__link--active' : ''}`}>
           <Settings size={16} />
