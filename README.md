@@ -1,12 +1,26 @@
 # 20 Dollar
 
-A YNAB-inspired personal budget app. Offline-first PWA with local-first data and optional server sync.
+A YNAB-inspired envelope budget app for personal use. Offline-first with local-first data and server sync.
+
+## Features
+
+- Envelope budgeting with Ready to Assign (RTA), category groups, targets (monthly/savings/by-date)
+- Transaction management with inline editing, grouping, bulk actions, keyboard nav
+- Multiple accounts with transfers, reconciliation, starting balances
+- Scheduled/recurring transactions with auto-generation
+- Smart Import: paste/CSV/PDF bank statements with auto-categorization and import rules
+- YNAB Import: one-click migration from YNAB TSV exports (accounts, categories, transactions, assignments)
+- Undo/redo (Ctrl+Z/Y) with 50-entry stack
+- Health rings, target progress bars, budget status counters
+- Dark theme (Catppuccin Mocha with Figtree + JetBrains Mono fonts)
 
 ## Stack
 
-- **Frontend**: Solid.js, Vite, TypeScript, Catppuccin Mocha theme
+- **Frontend**: Solid.js, Vite, TypeScript
 - **Backend**: Rust, Axum, SQLite (rusqlite + r2d2 pool)
-- **Data layer**: Custom sync engine (IndexedDB local, REST push/pull)
+- **Data layer**: Custom sync engine (IndexedDB client-side, REST push/pull to server)
+- **Auth**: Cookie sessions, Argon2id password hashing, rate-limited login
+- **Security**: HSTS, X-Frame-Options, X-Content-Type-Options, Secure cookies, 2MB body limit
 
 ## Quick Start (Docker)
 
@@ -124,26 +138,36 @@ SQLite is statically compiled via `rusqlite`'s `bundled` feature — no system S
 | `RUST_LOG` | `twenty_dollar=info` | Log level |
 | `PORT` | `3001` (hardcoded) | Server port |
 
-### Reverse proxy (optional)
+### Reverse proxy (recommended for production)
 
-If you want a domain later, put nginx/caddy in front:
+Put nginx in front for TLS termination:
 
 ```nginx
 server {
     listen 80;
     server_name budget.example.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name budget.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/budget.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/budget.example.com/privkey.pem;
 
     location / {
         proxy_pass http://127.0.0.1:3001;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        client_max_body_size 2M;
     }
 }
 ```
 
-### HTTP / IP deployment note
-
-The app works on plain HTTP (no HTTPS). A polyfill handles `crypto.randomUUID` which browsers normally restrict to secure contexts. No functionality is lost — the only limitation is the session cookie lacks the `Secure` flag, so add HTTPS (via reverse proxy + Let's Encrypt) before exposing to the public internet.
+The app sets security headers (HSTS, X-Frame-Options, X-Content-Type-Options) at the Axum layer. Session cookies require HTTPS (Secure flag set).
 
 ---
 
