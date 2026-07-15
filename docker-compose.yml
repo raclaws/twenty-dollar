@@ -11,6 +11,7 @@ services:
       - DATABASE_PATH=/app/data/twenty_dollar.db
       - STATIC_DIR=/app/static
       - RUST_LOG=${RUST_LOG:-twenty_dollar=info,tower_http=info}
+      - INSECURE_COOKIES=${INSECURE_COOKIES:-0}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
       interval: 30s

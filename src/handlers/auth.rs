@@ -91,11 +91,15 @@ pub fn extract_session_id(headers: &HeaderMap) -> Option<String> {
         .next()
 }
 
+fn secure_flag() -> &'static str {
+    if std::env::var("INSECURE_COOKIES").unwrap_or_default() == "1" { "" } else { "; Secure" }
+}
+
 fn set_cookie_headers(session_id: &str) -> HeaderMap {
     let mut headers = HeaderMap::new();
     let cookie = format!(
-        "{}={}; HttpOnly; SameSite=Strict; Secure; Path=/; Max-Age={}",
-        SESSION_COOKIE, session_id, MAX_AGE
+        "{}={}; HttpOnly; SameSite=Strict{}; Path=/; Max-Age={}",
+        SESSION_COOKIE, session_id, secure_flag(), MAX_AGE
     );
     headers.insert("set-cookie", cookie.parse().unwrap());
     headers
@@ -104,8 +108,8 @@ fn set_cookie_headers(session_id: &str) -> HeaderMap {
 fn clear_cookie_headers() -> HeaderMap {
     let mut headers = HeaderMap::new();
     let cookie = format!(
-        "{}=; HttpOnly; SameSite=Strict; Secure; Path=/; Max-Age=0",
-        SESSION_COOKIE
+        "{}=; HttpOnly; SameSite=Strict{}; Path=/; Max-Age=0",
+        SESSION_COOKIE, secure_flag()
     );
     headers.insert("set-cookie", cookie.parse().unwrap());
     headers
