@@ -1,6 +1,6 @@
 import { createSignal, createContext, useContext, createMemo, createEffect, onMount, Show, For, type ParentComponent, type Accessor } from 'solid-js'
 import { A, useLocation, useNavigate } from '@solidjs/router'
-import { LayoutGrid, ArrowLeftRight, CreditCard, Settings, Wallet, AlertTriangle, TrendingDown, AlertCircle, CircleDot, Upload, RefreshCw } from 'lucide-solid'
+import { LayoutGrid, ArrowLeftRight, CreditCard, Settings, Wallet, AlertTriangle, TrendingDown, AlertCircle, CircleDot, Upload, RefreshCw, Sun, Moon, LogOut } from 'lucide-solid'
 import { ACCOUNT_TYPE_ICONS } from './lib/icons'
 import type { AppStore } from './lib/store'
 import { initStore } from './lib/store'
@@ -153,6 +153,7 @@ function Sidebar() {
   const accounts = createQuery(reactive, 'accounts')
   const transactions = createQuery(reactive, 'transactions')
   const budgetStore = createBudgetStore(reactive, month)
+  const [theme, setTheme] = createSignal(document.documentElement.getAttribute('data-theme') || 'dark')
 
   useOnlineDetector()
 
@@ -306,7 +307,20 @@ function Sidebar() {
           </span>
           <span class="sidebar__user-email">{localStorage.getItem('user_email') || ''}</span>
         </div>
-        <button class="sidebar__logout" onClick={async () => {
+        <div class="sidebar__user-actions">
+          <label class="theme-switch" title="Toggle theme">
+            <input type="checkbox" checked={theme() === 'light'} onChange={() => {
+              const next = theme() === 'light' ? 'dark' : 'light'
+              document.documentElement.setAttribute('data-theme', next)
+              localStorage.setItem('twenty-dollar:theme', next)
+              setTheme(next)
+            }} />
+            <span class="theme-switch__track">
+              <Sun size={10} />
+              <Moon size={10} />
+            </span>
+          </label>
+          <button class="sidebar__logout" onClick={async () => {
           const confirmed = await confirmAction({
             message: 'Log out of 20 Dollar?',
             actionLabel: 'Log out',
@@ -319,7 +333,8 @@ function Sidebar() {
           localStorage.removeItem('user_email')
           localStorage.removeItem('twenty-dollar:seeded')
           window.location.href = '/login'
-        }}>Log out</button>
+        }} title="Log out"><LogOut size={14} /></button>
+        </div>
       </div>
     </aside>
   )

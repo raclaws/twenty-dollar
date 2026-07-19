@@ -87,34 +87,32 @@
 }
 
 /* ─── Light Mode ─── */
-@media (prefers-color-scheme: light) {
-  :root {
-    --c-base: #F4F6F7;
-    --c-mantle: #FFFFFF;
-    --c-crust: #FFFFFF;
-    --c-surface0: #E8ECEE;
-    --c-surface1: #DCE2E5;
-    --c-surface2: #CDD5D9;
+[data-theme="light"] {
+  --c-base: #F4F6F7;
+  --c-mantle: #FFFFFF;
+  --c-crust: #FFFFFF;
+  --c-surface0: #E8ECEE;
+  --c-surface1: #DCE2E5;
+  --c-surface2: #CDD5D9;
 
-    --c-text: #111C28;
-    --c-subtext1: #2E4A63;
-    --c-subtext0: #5E6B75;
-    --c-overlay0: #7C8994;
+  --c-text: #111C28;
+  --c-subtext1: #2E4A63;
+  --c-subtext0: #5E6B75;
+  --c-overlay0: #7C8994;
 
-    --c-copper: #C17A4E;
+  --c-copper: #C17A4E;
 
-    --c-positive: #456B50;
-    --c-negative: #943F2D;
-    --c-warning: #C79A56;
-    --c-interactive: #C17A4E;
+  --c-positive: #456B50;
+  --c-negative: #943F2D;
+  --c-warning: #C79A56;
+  --c-interactive: #C17A4E;
 
-    --c-positive-bg: color-mix(in srgb, var(--c-positive) 8%, transparent);
-    --c-negative-bg: color-mix(in srgb, var(--c-negative) 8%, transparent);
-    --c-warning-bg: color-mix(in srgb, var(--c-warning) 8%, transparent);
-    --c-interactive-bg: color-mix(in srgb, var(--c-interactive) 8%, transparent);
+  --c-positive-bg: color-mix(in srgb, var(--c-positive) 8%, transparent);
+  --c-negative-bg: color-mix(in srgb, var(--c-negative) 8%, transparent);
+  --c-warning-bg: color-mix(in srgb, var(--c-warning) 8%, transparent);
+  --c-interactive-bg: color-mix(in srgb, var(--c-interactive) 8%, transparent);
 
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
-  }
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
