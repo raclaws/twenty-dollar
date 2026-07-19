@@ -47,8 +47,21 @@ pub struct MonthLock {
 pub fn export_all(conn: &Connection, user_id: &str) -> AppResult<ExportData> {
     let accounts = db::accounts::list_accounts(conn, user_id)?;
     let category_groups = db::categories::list_groups_with_categories(conn, user_id)?;
-    let transactions = db::transactions::list_transactions(conn, None, None, None, None)?;
-    let transfers = db::transfers::list_transfers(conn)?;
+
+    // Scope transactions to user's accounts
+    let mut transactions = Vec::new();
+    for acc in &accounts {
+        let mut acc_txns = db::transactions::list_transactions(conn, Some(&acc.id), None, None, None)?;
+        transactions.append(&mut acc_txns);
+    }
+    transactions.sort_by(|a, b| b.date.cmp(&a.date));
+
+    // Scope transfers to user's accounts
+    let all_transfers = db::transfers::list_transfers(conn)?;
+    let account_ids: std::collections::HashSet<&str> = accounts.iter().map(|a| a.id.as_str()).collect();
+    let transfers: Vec<_> = all_transfers.into_iter()
+        .filter(|t| account_ids.contains(t.from_account_id.as_str()) || account_ids.contains(t.to_account_id.as_str()))
+        .collect();
     let payees = db::payees::list_payees(conn, user_id)?;
     let schedules = db::schedules::list_schedules(conn, user_id)?;
     let import_rules = db::import_rules::list_rules(conn, user_id)?;
@@ -108,9 +121,16 @@ pub fn export_all(conn: &Connection, user_id: &str) -> AppResult<ExportData> {
 }
 
 pub fn export_csv(conn: &Connection, user_id: &str) -> AppResult<String> {
-    let transactions = db::transactions::list_transactions(conn, None, None, None, None)?;
     let accounts = db::accounts::list_accounts(conn, user_id)?;
     let groups = db::categories::list_groups_with_categories(conn, user_id)?;
+
+    // Scope transactions to user's accounts
+    let mut transactions = Vec::new();
+    for acc in &accounts {
+        let mut acc_txns = db::transactions::list_transactions(conn, Some(&acc.id), None, None, None)?;
+        transactions.append(&mut acc_txns);
+    }
+    transactions.sort_by(|a, b| b.date.cmp(&a.date));
 
     let acc_map: std::collections::HashMap<&str, &str> = accounts.iter()
         .map(|a| (a.id.as_str(), a.name.as_str())).collect();
@@ -125,7 +145,7 @@ pub fn export_csv(conn: &Connection, user_id: &str) -> AppResult<String> {
         .map_err(|e| AppError::Internal(e.to_string()))?;
     for tx in &transactions {
         let sign = if tx.amount < 0 { "-" } else { "" };
-        let abs = tx.amount.abs();
+        let abs = (tx.amount as i128).unsigned_abs() as i64;
         let amount_str = format!("{}{}.{:02}", sign, abs / 100, abs % 100);
         let account_name = acc_map.get(tx.account_id.as_str()).copied().unwrap_or("");
         let category_name = tx.category_id.as_ref()
