@@ -275,7 +275,7 @@
 }
 
 .sidebar__logout:hover {
-  color: var(--c-red);
+  color: var(--c-negative);
 }
 
 .main {

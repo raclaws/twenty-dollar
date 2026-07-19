@@ -20,8 +20,8 @@
 .badge--neutral { background: var(--c-surface0); color: var(--c-subtext0); }
 .badge--info { background: var(--c-interactive); color: var(--c-crust); }
 .badge--overspent { background: var(--c-negative); color: var(--c-crust); }
-.badge--underfunded { background: var(--c-warning); color: var(--c-crust); }
-.badge--funded { background: var(--c-positive); color: var(--c-crust); }
+.badge--underfunded { background: transparent; color: var(--c-warning); }
+.badge--funded { background: transparent; color: var(--c-positive); }
 
 .badge .money { color: inherit !important; }
 
@@ -32,17 +32,22 @@
   justify-content: center;
   gap: var(--sp-2);
   padding: var(--sp-2) var(--sp-4);
-  border-radius: var(--r-md);
+  border-radius: var(--r-full);
   font-size: var(--fs-sm);
   font-weight: var(--fw-semibold);
   transition: background var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
 }
+.btn:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+.btn--primary:hover { background: var(--c-interactive); filter: brightness(1.12); }
+.btn--secondary:hover { background: var(--c-surface1); }
+.btn--danger:hover { background: var(--c-negative); filter: brightness(1.12); }
+.btn--ghost:hover { background: color-mix(in srgb, var(--c-interactive) 10%, transparent); }
 .btn:active { opacity: 0.85; }
 .btn--primary { background: var(--c-interactive); color: var(--c-crust); }
 .btn--secondary { background: var(--c-surface0); color: var(--c-text); font-weight: var(--fw-medium); }
 .btn--danger { background: var(--c-negative); color: var(--c-crust); }
 .btn--ghost { background: none; color: var(--c-interactive); font-weight: var(--fw-medium); }
-.btn--sm { padding: var(--sp-1) var(--sp-3); font-size: var(--fs-sm); border-radius: var(--r-md); }
+.btn--sm { padding: var(--sp-1) var(--sp-3); font-size: var(--fs-sm); }
 
 /* ─── Input ─── */
 .input {
@@ -202,7 +207,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-5);
-  animation: dialog-in var(--dur-normal) var(--ease);
+  animation: dialog-in var(--dur-fast) var(--ease);
 }
 .dialog__header {
   display: flex;
@@ -277,8 +282,8 @@
   to { opacity: 1; }
 }
 @keyframes dialog-in {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* ─── Cell Type Affordances ─── */
@@ -504,15 +509,15 @@
 
 /* ─── Schedule Dialog ─── */
 .schedule-dialog { width: 400px; }
-.schedule-dialog__form { display: flex; flex-direction: column; gap: 12px; padding: 16px 0 0; }
-.schedule-dialog__summary { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--c-surface0); border-radius: 6px; }
-.schedule-dialog__payee { font-size: 14px; color: var(--c-text); }
-.schedule-dialog__amount { font-size: 14px; font-weight: 600; color: var(--c-text); }
-.schedule-dialog__field { display: flex; flex-direction: column; gap: 4px; }
-.schedule-dialog__field span { font-size: 12px; color: var(--c-subtext0); }
+.schedule-dialog__form { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4) 0 0; }
+.schedule-dialog__summary { display: flex; justify-content: space-between; align-items: center; padding: var(--sp-3); background: var(--c-surface0); border-radius: var(--r-lg); }
+.schedule-dialog__payee { font-size: var(--fs-xs); color: var(--c-text); }
+.schedule-dialog__amount { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--c-text); }
+.schedule-dialog__field { display: flex; flex-direction: column; gap: var(--sp-1); }
+.schedule-dialog__field span { font-size: var(--fs-xs); color: var(--c-subtext0); }
 .schedule-dialog__field select,
-.schedule-dialog__field input { padding: 8px 10px; background: var(--c-surface0); border: 1px solid var(--c-surface1); border-radius: 4px; color: var(--c-text); font-size: 13px; }
-.schedule-dialog__checkbox { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--c-subtext1); }
-.schedule-dialog__checkbox input { accent-color: var(--c-blue); }
-.schedule-dialog__error { padding: 6px 10px; background: var(--c-red); color: var(--c-base); border-radius: 4px; font-size: 12px; }
-.schedule-dialog__actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.schedule-dialog__field input { padding: var(--sp-2) var(--sp-3); background: var(--c-surface0); border: 1px solid var(--c-surface1); border-radius: var(--r-md); color: var(--c-text); font-size: var(--fs-xs); }
+.schedule-dialog__checkbox { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-xs); color: var(--c-subtext1); }
+.schedule-dialog__checkbox input { accent-color: var(--c-interactive); }
+.schedule-dialog__error { padding: var(--sp-2) var(--sp-3); background: var(--c-negative); color: var(--c-crust); border-radius: var(--r-md); font-size: var(--fs-xs); }
+.schedule-dialog__actions { display: flex; justify-content: flex-end; gap: var(--sp-2); margin-top: var(--sp-2); }

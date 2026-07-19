@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0a0a0f" />
+    <meta name="theme-color" content="#111C28" />
     <title>20 Dollar is Expensive</title>
     <link rel="icon" type="image/png" href="/icon-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,12 +11,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div id="splash" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0a0a0f;flex-direction:column;gap:12px;z-index:9999">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2.5"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
-      <div style="width:24px;height:24px;border:2px solid #1e1e2e;border-top-color:#6366f1;border-radius:50%;animation:sp .6s linear infinite"></div>
+    <div id="splash" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#111C28;flex-direction:column;gap:12px;z-index:9999">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C17A4E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2.5"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
+      <div style="width:24px;height:24px;border:2px solid #1B2E42;border-top-color:#C17A4E;border-radius:50%;animation:sp .6s linear infinite"></div>
     </div>
     <div id="app"></div>
-    <style>@keyframes sp{to{transform:rotate(360deg)}}</style>
+    <style>@keyframes sp{to{transform:rotate(360deg)}}@media(prefers-color-scheme:light){#splash{background:#F4F6F7 !important}#splash svg{stroke:#C17A4E}#splash div{border-color:#E8ECEE !important;border-top-color:#C17A4E !important}}</style>
     <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>

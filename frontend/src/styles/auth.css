@@ -9,35 +9,30 @@
 .auth-card {
   width: 100%;
   max-width: 360px;
-  padding: 40px 32px;
+  padding: var(--sp-10) var(--sp-8);
   background: var(--c-mantle);
-  border-radius: 12px;
+  border-radius: var(--r-2xl);
   border: 1px solid var(--c-surface0);
-  animation: auth-fade-in 150ms ease-out;
-}
-
-@keyframes auth-fade-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  animation: fade-in var(--dur-fast) var(--ease);
 }
 
 .auth-header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 32px;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-8);
   color: var(--c-text);
 }
 
 .auth-header h1 {
-  font-size: 20px;
-  font-weight: 600;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-semibold);
   margin: 0;
 }
 
 .auth-subtitle {
-  font-size: 13px;
+  font-size: var(--fs-xs);
   color: var(--c-subtext0);
   margin: 0;
 }
@@ -45,32 +40,32 @@
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--sp-3);
 }
 
 .auth-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--sp-1);
 }
 
 .auth-field input,
 .auth-pw-wrap input {
-  padding: 10px 12px;
+  padding: var(--sp-3);
   background: var(--c-surface0);
   border: 1px solid var(--c-surface1);
-  border-radius: 6px;
+  border-radius: var(--r-lg);
   color: var(--c-text);
-  font-size: 14px;
+  font-size: var(--fs-xs);
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color var(--dur-fast) var(--ease);
   width: 100%;
   box-sizing: border-box;
 }
 
 .auth-field input:focus,
 .auth-pw-wrap input:focus {
-  border-color: var(--c-blue);
+  border-color: var(--c-interactive);
 }
 
 .auth-field input::placeholder,
@@ -79,13 +74,13 @@
 }
 
 .auth-input--error {
-  border-color: var(--c-red) !important;
+  border-color: var(--c-negative) !important;
 }
 
 .auth-field-error {
-  font-size: 11px;
-  color: var(--c-red);
-  padding-left: 2px;
+  font-size: var(--fs-xs);
+  color: var(--c-negative);
+  padding-left: var(--sp-1);
 }
 
 .auth-pw-wrap {
@@ -95,17 +90,17 @@
 }
 
 .auth-pw-wrap input {
-  padding-right: 36px;
+  padding-right: var(--sp-10);
 }
 
 .auth-pw-toggle {
   position: absolute;
-  right: 10px;
+  right: var(--sp-3);
   background: none;
   border: none;
   color: var(--c-overlay0);
   cursor: pointer;
-  padding: 2px;
+  padding: var(--sp-1);
   display: flex;
   align-items: center;
 }
@@ -115,20 +110,20 @@
 }
 
 .auth-submit {
-  margin-top: 8px;
-  padding: 10px 16px;
-  background: var(--c-blue);
-  color: var(--c-base);
+  margin-top: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--c-interactive);
+  color: var(--c-crust);
   border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: var(--r-lg);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: filter var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
 }
 
 .auth-submit:hover:not(:disabled) {
-  opacity: 0.9;
+  filter: brightness(1.12);
 }
 
 .auth-submit:disabled {
@@ -137,16 +132,16 @@
 }
 
 .auth-error {
-  padding: 8px 12px;
-  background: color-mix(in srgb, var(--c-red) 15%, transparent);
-  color: var(--c-red);
-  border: 1px solid color-mix(in srgb, var(--c-red) 30%, transparent);
-  border-radius: 4px;
-  font-size: 13px;
+  padding: var(--sp-2) var(--sp-3);
+  background: color-mix(in srgb, var(--c-negative) 15%, transparent);
+  color: var(--c-negative);
+  border: 1px solid color-mix(in srgb, var(--c-negative) 30%, transparent);
+  border-radius: var(--r-md);
+  font-size: var(--fs-xs);
 }
 
 .auth-error--shake {
-  animation: auth-shake 200ms ease-out;
+  animation: auth-shake var(--dur-normal) var(--ease);
 }
 
 @keyframes auth-shake {
@@ -157,11 +152,11 @@
 
 .auth-link {
   text-align: center;
-  font-size: 13px;
+  font-size: var(--fs-xs);
   color: var(--c-subtext0);
   text-decoration: none;
 }
 
 .auth-link:hover {
-  color: var(--c-blue);
+  color: var(--c-interactive);
 }

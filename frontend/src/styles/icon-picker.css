@@ -9,23 +9,23 @@
   overflow-y: auto;
   background: var(--c-surface0);
   border: 1px solid var(--c-surface1);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  padding: 8px;
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--sp-2);
 }
 
 .icon-picker__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 4px 8px;
+  padding: var(--sp-1) var(--sp-1) var(--sp-2);
   border-bottom: 1px solid var(--c-surface1);
-  margin-bottom: 8px;
+  margin-bottom: var(--sp-2);
 }
 
 .icon-picker__title {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
   color: var(--c-subtext0);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -36,11 +36,12 @@
   border: none;
   color: var(--c-overlay0);
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
+  padding: var(--sp-1);
+  border-radius: var(--r-sm);
   display: flex;
   align-items: center;
 }
+
 .icon-picker__clear:hover {
   background: var(--c-surface1);
   color: var(--c-text);
@@ -48,18 +49,18 @@
 
 .icon-picker__group-label {
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   color: var(--c-overlay0);
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  padding: 6px 4px 4px;
+  padding: var(--sp-2) var(--sp-1) var(--sp-1);
 }
 
 .icon-picker__group-icons {
   display: flex;
   flex-wrap: wrap;
   gap: 2px;
-  padding-bottom: 4px;
+  padding-bottom: var(--sp-1);
 }
 
 .icon-picker__item {
@@ -70,22 +71,25 @@
   justify-content: center;
   border: none;
   background: none;
-  border-radius: 6px;
+  border-radius: var(--r-lg);
   color: var(--c-subtext1);
   cursor: pointer;
-  transition: background 0.1s, color 0.1s;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
+
 .icon-picker__item:hover {
   background: var(--c-surface1);
   color: var(--c-text);
 }
+
 .icon-picker__item--selected {
-  background: var(--c-blue);
-  color: var(--c-base);
+  background: var(--c-interactive);
+  color: var(--c-crust);
 }
+
 .icon-picker__item--selected:hover {
-  background: var(--c-blue);
-  color: var(--c-base);
+  background: var(--c-interactive);
+  color: var(--c-crust);
 }
 
 /* Entity Icon (shared inline icon / initial display) */
@@ -99,8 +103,8 @@
 
 .entity-icon--initial {
   border-radius: 50%;
-  color: var(--c-base);
-  font-weight: 700;
+  color: var(--c-crust);
+  font-weight: var(--fw-bold);
   line-height: 1;
 }
 

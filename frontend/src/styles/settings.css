@@ -41,13 +41,13 @@
 }
 
 .sync-box--offline {
-  background: #ff6b6b;
-  box-shadow: 0 0 6px 2px #ff6b6b;
+  background: var(--c-negative);
+  box-shadow: 0 0 6px 2px var(--c-negative);
 }
 
 .sync-box--error {
-  background: #ff6b6b;
-  box-shadow: 0 0 6px 2px #ff6b6b;
+  background: var(--c-negative);
+  box-shadow: 0 0 6px 2px var(--c-negative);
 }
 
 .sync-box--pending {

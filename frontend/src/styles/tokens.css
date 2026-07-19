@@ -1,39 +1,34 @@
 :root {
-  /* ─── Base (Dark Neon) ─── */
-  --c-base: #0a0a0f;
-  --c-mantle: #08080c;
-  --c-crust: #060609;
-  --c-surface0: #1e1e26;
-  --c-surface1: #2a2a34;
-  --c-surface2: #36363f;
+  /* ─── Base (Dark — Ink Navy) ─── */
+  --c-base: #111C28;
+  --c-mantle: #0D1520;
+  --c-crust: #0A1018;
+  --c-surface0: #1B2E42;
+  --c-surface1: #2E4A63;
+  --c-surface2: #3A5A78;
 
   /* ─── Text ─── */
-  --c-text: #e8e8ee;
-  --c-subtext1: #c8c8d0;
-  --c-subtext0: #a0a0aa;
-  --c-overlay0: #5a5a66;
+  --c-text: #F4F6F7;
+  --c-subtext1: #D8DDE0;
+  --c-subtext0: #A8B2BA;
+  --c-overlay0: #7C8994;
 
-  /* ─── Accent ─── */
-  --c-blue: #6366f1;
-  --c-green: #00ff41;
-  --c-red: #ff3366;
-  --c-yellow: #ffee00;
-  --c-mauve: #a78bfa;
-  --c-teal: #00e5ff;
+  /* ─── Brand ─── */
+  --c-prussian: #1B2E42;
+  --c-steel: #2E4A63;
+  --c-copper: #D4956A;
 
   /* ─── Semantic ─── */
-  --c-positive: var(--c-green);
-  --c-negative: var(--c-red);
-  --c-warning: var(--c-yellow);
-  --c-interactive: var(--c-blue);
-  --c-transfer: var(--c-mauve);
-  --c-reconciled: var(--c-teal);
+  --c-positive: #5C8067;
+  --c-negative: #B5533D;
+  --c-warning: #C79A56;
+  --c-interactive: #C17A4E;
 
   /* ─── Semantic Backgrounds ─── */
-  --c-positive-bg: #0d2922;
-  --c-negative-bg: #2a0015;
-  --c-warning-bg: #2a2200;
-  --c-interactive-bg: #1a1a3d;
+  --c-positive-bg: color-mix(in srgb, var(--c-positive) 12%, transparent);
+  --c-negative-bg: color-mix(in srgb, var(--c-negative) 12%, transparent);
+  --c-warning-bg: color-mix(in srgb, var(--c-warning) 12%, transparent);
+  --c-interactive-bg: color-mix(in srgb, var(--c-interactive) 12%, transparent);
 
   /* ─── Spacing (4px base) ─── */
   --sp-1: 4px;
@@ -47,12 +42,12 @@
   --sp-12: 48px;
   --sp-16: 64px;
 
-  /* ─── Border Radius (Sharp) ─── */
-  --r-sm: 2px;
-  --r-md: 2px;
-  --r-lg: 4px;
-  --r-xl: 4px;
-  --r-2xl: 6px;
+  /* ─── Border Radius ─── */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 14px;
+  --r-2xl: 16px;
   --r-full: 9999px;
 
   /* ─── Typography ─── */
@@ -78,9 +73,9 @@
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* ─── Shadows ─── */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.7);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
 
   /* ─── Layout ─── */
   --sidebar-w: 240px;
@@ -89,4 +84,37 @@
   --row-h-lg: 48px;
   --input-h: 36px;
   --input-h-lg: 40px;
+}
+
+/* ─── Light Mode ─── */
+@media (prefers-color-scheme: light) {
+  :root {
+    --c-base: #F4F6F7;
+    --c-mantle: #FFFFFF;
+    --c-crust: #FFFFFF;
+    --c-surface0: #E8ECEE;
+    --c-surface1: #DCE2E5;
+    --c-surface2: #CDD5D9;
+
+    --c-text: #111C28;
+    --c-subtext1: #2E4A63;
+    --c-subtext0: #5E6B75;
+    --c-overlay0: #7C8994;
+
+    --c-copper: #C17A4E;
+
+    --c-positive: #456B50;
+    --c-negative: #943F2D;
+    --c-warning: #C79A56;
+    --c-interactive: #C17A4E;
+
+    --c-positive-bg: color-mix(in srgb, var(--c-positive) 8%, transparent);
+    --c-negative-bg: color-mix(in srgb, var(--c-negative) 8%, transparent);
+    --c-warning-bg: color-mix(in srgb, var(--c-warning) 8%, transparent);
+    --c-interactive-bg: color-mix(in srgb, var(--c-interactive) 8%, transparent);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
 }
