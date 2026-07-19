@@ -121,8 +121,8 @@
 .txn-row__date-display { display: flex; align-items: center; gap: 4px; }
 .txn-row__schedule-badge { display: inline-flex; align-items: center; color: var(--c-overlay0); }
 .txn-row__account { width: 110px; font-size: var(--fs-md); color: var(--c-subtext0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.txn-row__payee { flex: 1; min-width: 160px; font-size: var(--fs-md); color: var(--c-text); white-space: nowrap; position: relative; overflow: visible; }
-.txn-row__payee-display { display: flex; align-items: center; gap: 6px; }
+.txn-row__payee { flex: 1; min-width: 100px; max-width: 220px; font-size: var(--fs-md); color: var(--c-text); white-space: nowrap; position: relative; overflow: visible; }
+.txn-row__payee-display { display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; }
 .txn-row__category-display { display: flex; align-items: center; gap: 5px; }
 .payee-initial { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; font-size: 10px; font-weight: 700; color: var(--c-base); flex-shrink: 0; line-height: 1; }
 .txn-row__source-icon { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }

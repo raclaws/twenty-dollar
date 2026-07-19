@@ -365,6 +365,11 @@
   display: flex;
   align-items: center;
   gap: var(--sp-2);
+  overflow: visible;
+  position: relative;
+}
+
+.budget-row__name > span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
