@@ -199,7 +199,7 @@
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  padding: var(--sp-1) var(--sp-2);
+  padding: var(--sp-2) var(--sp-2);
   border-radius: var(--r-sm);
   text-decoration: none;
   transition: background var(--dur-fast) var(--ease);
@@ -216,14 +216,23 @@
   flex-shrink: 0;
 }
 
+.sidebar__account-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .sidebar__account-name {
-  flex: 1;
-  font-size: var(--fs-md);
-  color: var(--c-subtext0);
+  font-size: var(--fs-sm);
+  color: var(--c-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sidebar__account-balance {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
 

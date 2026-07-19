@@ -285,10 +285,12 @@ function Sidebar() {
             return (
               <A href={`/transactions?account=${account.id}`} class="sidebar__account">
                 <span class="sidebar__account-icon"><TypeIcon size={14} /></span>
-                <span class="sidebar__account-name">{account.name as string}</span>
-                <span class={`sidebar__account-balance ${balance() >= 0 ? 'money--positive' : 'money--negative'}`}>
-                  {formatMoneyUnsigned(Math.abs(balance()))}
-                </span>
+                <div class="sidebar__account-info">
+                  <span class="sidebar__account-name">{account.name as string}</span>
+                  <span class={`sidebar__account-balance ${balance() >= 0 ? 'money--positive' : 'money--negative'}`}>
+                    {formatMoneyUnsigned(Math.abs(balance()))}
+                  </span>
+                </div>
               </A>
             )
           }}
