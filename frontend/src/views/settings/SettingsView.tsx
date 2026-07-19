@@ -25,7 +25,10 @@ const SettingsView: Component = () => {
 
   async function handleExportCsv() {
     const res = await fetch('/api/export/csv')
-    if (!res.ok) return
+    if (!res.ok) {
+      if (res.status === 401) { window.location.href = '/login' }
+      return
+    }
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
