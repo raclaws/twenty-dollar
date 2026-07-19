@@ -27,6 +27,18 @@ const SettingsView: Component = () => {
     URL.revokeObjectURL(url)
   }
 
+  async function handleExportCsv() {
+    const res = await fetch('/api/export/csv')
+    if (!res.ok) return
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `twenty-dollar-transactions-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   function triggerImport() {
     fileInput?.click()
   }
@@ -184,6 +196,7 @@ const SettingsView: Component = () => {
               {importing() ? 'Importing...' : 'Import CSV'}
             </button>
             <button class="btn btn--secondary" onClick={handleExport}>Export JSON</button>
+            <button class="btn btn--secondary" onClick={handleExportCsv}>Export CSV</button>
             <A href="/import" class="btn btn--secondary">Import</A>
             <input ref={fileInput} type="file" accept=".csv,.txt" style={{ display: 'none' }} onChange={handleImportFile} />
           </div>

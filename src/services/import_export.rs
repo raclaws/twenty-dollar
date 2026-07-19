@@ -3,9 +3,11 @@ use crate::db;
 use crate::error::{AppError, AppResult};
 use crate::models::account::Account;
 use crate::models::category::CategoryGroup;
-use crate::models::transaction::Transaction;
+use crate::models::transaction::{Transaction, SplitEntry};
 use crate::models::transfer::Transfer;
-use crate::models::assignment::Assignment;
+use crate::models::payee::Payee;
+use crate::models::schedule::Schedule;
+use crate::models::import_rule::ImportRule;
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -15,6 +17,12 @@ pub struct ExportData {
     pub transactions: Vec<Transaction>,
     pub transfers: Vec<Transfer>,
     pub assignments: Vec<AssignmentExport>,
+    pub payees: Vec<Payee>,
+    pub schedules: Vec<Schedule>,
+    pub split_entries: Vec<SplitEntry>,
+    pub import_rules: Vec<ImportRule>,
+    pub preferences: UserPreferences,
+    pub month_locks: Vec<MonthLock>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -25,25 +33,64 @@ pub struct AssignmentExport {
     pub amount: i64,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserPreferences {
+    pub currency: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MonthLock {
+    pub month: String,
+    pub locked: bool,
+}
+
 pub fn export_all(conn: &Connection, user_id: &str) -> AppResult<ExportData> {
     let accounts = db::accounts::list_accounts(conn, user_id)?;
     let category_groups = db::categories::list_groups_with_categories(conn, user_id)?;
     let transactions = db::transactions::list_transactions(conn, None, None, None, None)?;
     let transfers = db::transfers::list_transfers(conn)?;
+    let payees = db::payees::list_payees(conn, user_id)?;
+    let schedules = db::schedules::list_schedules(conn, user_id)?;
+    let import_rules = db::import_rules::list_rules(conn, user_id)?;
 
-    let mut stmt = conn.prepare("SELECT id, category_id, month, amount FROM assignments ORDER BY month, category_id")?;
-    let rows = stmt.query_map([], |row| {
+    let mut stmt = conn.prepare(
+        "SELECT id, category_id, month, amount FROM assignments WHERE category_id IN (SELECT id FROM categories WHERE group_id IN (SELECT id FROM category_groups WHERE user_id = ?1)) ORDER BY month, category_id"
+    )?;
+    let assignments: Vec<AssignmentExport> = stmt.query_map(rusqlite::params![user_id], |row| {
         Ok(AssignmentExport {
             id: row.get(0)?,
             category_id: row.get(1)?,
             month: row.get(2)?,
             amount: row.get(3)?,
         })
-    })?;
-    let mut assignments = Vec::new();
-    for row in rows {
-        assignments.push(row?);
-    }
+    })?.collect::<Result<Vec<_>, _>>()?;
+
+    let mut stmt = conn.prepare(
+        "SELECT id, transaction_id, category_id, amount, memo FROM split_entries WHERE transaction_id IN (SELECT id FROM transactions WHERE account_id IN (SELECT id FROM accounts WHERE user_id = ?1))"
+    )?;
+    let split_entries: Vec<SplitEntry> = stmt.query_map(rusqlite::params![user_id], |row| {
+        Ok(SplitEntry {
+            id: row.get(0)?,
+            transaction_id: row.get(1)?,
+            category_id: row.get(2)?,
+            amount: row.get(3)?,
+            memo: row.get(4)?,
+        })
+    })?.collect::<Result<Vec<_>, _>>()?;
+
+    let currency: String = conn.query_row(
+        "SELECT currency FROM user_preferences WHERE user_id = ?1",
+        rusqlite::params![user_id],
+        |row| row.get(0),
+    ).unwrap_or_else(|_| "USD".to_string());
+
+    let mut stmt = conn.prepare("SELECT month, locked FROM month_locks WHERE user_id = ?1")?;
+    let month_locks: Vec<MonthLock> = stmt.query_map(rusqlite::params![user_id], |row| {
+        Ok(MonthLock {
+            month: row.get(0)?,
+            locked: row.get::<_, i32>(1)? != 0,
+        })
+    })?.collect::<Result<Vec<_>, _>>()?;
 
     Ok(ExportData {
         accounts,
@@ -51,7 +98,53 @@ pub fn export_all(conn: &Connection, user_id: &str) -> AppResult<ExportData> {
         transactions,
         transfers,
         assignments,
+        payees,
+        schedules,
+        split_entries,
+        import_rules,
+        preferences: UserPreferences { currency },
+        month_locks,
     })
+}
+
+pub fn export_csv(conn: &Connection, user_id: &str) -> AppResult<String> {
+    let transactions = db::transactions::list_transactions(conn, None, None, None, None)?;
+    let accounts = db::accounts::list_accounts(conn, user_id)?;
+    let groups = db::categories::list_groups_with_categories(conn, user_id)?;
+
+    let acc_map: std::collections::HashMap<&str, &str> = accounts.iter()
+        .map(|a| (a.id.as_str(), a.name.as_str())).collect();
+
+    let cat_map: std::collections::HashMap<String, String> = groups.iter()
+        .flat_map(|g| g.categories.iter().map(move |c| {
+            (c.id.clone(), format!("{}: {}", g.name, c.name))
+        })).collect();
+
+    let mut wtr = csv::Writer::from_writer(Vec::new());
+    wtr.write_record(["date", "account", "payee", "category", "amount", "memo", "cleared", "source"])
+        .map_err(|e| AppError::Internal(e.to_string()))?;
+    for tx in &transactions {
+        let sign = if tx.amount < 0 { "-" } else { "" };
+        let abs = tx.amount.abs();
+        let amount_str = format!("{}{}.{:02}", sign, abs / 100, abs % 100);
+        let account_name = acc_map.get(tx.account_id.as_str()).copied().unwrap_or("");
+        let category_name = tx.category_id.as_ref()
+            .and_then(|id| cat_map.get(id))
+            .map(|s| s.as_str())
+            .unwrap_or("");
+        wtr.write_record([
+            tx.date.as_str(),
+            account_name,
+            tx.payee.as_deref().unwrap_or(""),
+            category_name,
+            amount_str.as_str(),
+            tx.memo.as_deref().unwrap_or(""),
+            if tx.cleared { "true" } else { "false" },
+            tx.source.as_deref().unwrap_or(""),
+        ]).map_err(|e| AppError::Internal(e.to_string()))?;
+    }
+    let data = wtr.into_inner().map_err(|e| AppError::Internal(e.to_string()))?;
+    String::from_utf8(data).map_err(|e| AppError::Internal(e.to_string()))
 }
 
 #[derive(Debug, Deserialize)]
