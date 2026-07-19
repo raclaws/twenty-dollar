@@ -38,6 +38,7 @@ const ImportView: Component = () => {
   const [showAccountPicker, setShowAccountPicker] = createSignal(false)
   const [error, setError] = createSignal<string | null>(null)
   const [importCount, setImportCount] = createSignal(0)
+  const [skippedCount, setSkippedCount] = createSignal(0)
   const [fileName, setFileName] = createSignal('')
   const [clusters, setClusters] = createSignal<DescriptionCluster[]>([])
   const [clusterAssignments, setClusterAssignments] = createSignal<Map<string, { payeeId: string | null; categoryId: string | null }>>(new Map())
@@ -167,7 +168,13 @@ const ImportView: Component = () => {
 
     const txns = transactions()
     const sel = selected()
-    const toImport = txns.filter((_, i) => sel.has(i))
+    const selectedTxns = txns.filter((_, i) => sel.has(i))
+
+    // Dedup: skip transactions matching existing date+amount+account
+    const existingTxns = await raw.query('transactions', { where: { account_id: accountId() } })
+    const existingKeys = new Set(existingTxns.map(t => `${t.date}|${t.amount}|${t.account_id}`))
+    const toImport = selectedTxns.filter(tx => !existingKeys.has(`${tx.date}|${tx.amount}|${accountId()}`))
+    const skipped = selectedTxns.length - toImport.length
 
     let imported = 0
     const txIds: string[] = []
@@ -200,6 +207,7 @@ const ImportView: Component = () => {
 
     reactive.notify('transactions')
     setImportCount(imported)
+    setSkippedCount(skipped)
     setImportedTxIds(txIds)
 
     // Push undo for the entire import batch
@@ -376,6 +384,7 @@ const ImportView: Component = () => {
     setError(null)
     setFileName('')
     setImportCount(0)
+    setSkippedCount(0)
     setClusters([])
     setClusterAssignments(new Map())
     setEditingCluster(null)
@@ -618,7 +627,7 @@ const ImportView: Component = () => {
           <div class="import-done">
             <div class="import-done__icon"><Check size={32} /></div>
             <p class="import-done__title">Import complete</p>
-            <p class="import-done__desc">{importCount()} transactions imported.</p>
+            <p class="import-done__desc">{importCount()} transactions imported{skippedCount() > 0 ? `, ${skippedCount()} skipped (duplicates)` : ''}.</p>
 
             <button class="btn btn--primary" onClick={reset}>Import more</button>
             <button class="btn btn--sm btn--ghost btn--danger" onClick={cancelImport}>Cancel Import</button>
