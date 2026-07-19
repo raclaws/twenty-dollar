@@ -145,10 +145,8 @@
 }
 
 .budget-grid__col--name {
-  flex: 0 0 160px;
-  width: 160px;
-  min-width: 160px;
-  max-width: 160px;
+  flex: 1 1 120px;
+  min-width: 120px;
   padding-left: 28px;
 }
 
@@ -158,9 +156,9 @@
 }
 
 .budget-grid__col--num {
-  width: 140px;
-  min-width: 140px;
-  max-width: 140px;
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
   flex-shrink: 0;
   text-align: right;
 }
@@ -218,10 +216,8 @@
 }
 
 .budget-group__name {
-  flex: 0 0 160px;
-  width: 160px;
-  min-width: 160px;
-  max-width: 160px;
+  flex: 1 1 120px;
+  min-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -295,9 +291,9 @@
 .budget-group__assigned,
 .budget-group__activity,
 .budget-group__available {
-  width: 140px;
-  min-width: 140px;
-  max-width: 140px;
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
   flex-shrink: 0;
   text-align: right;
   font-family: var(--font-mono);
@@ -361,10 +357,8 @@
 }
 
 .budget-row__name {
-  flex: 0 0 160px;
-  width: 160px;
-  min-width: 160px;
-  max-width: 160px;
+  flex: 1 1 120px;
+  min-width: 120px;
   padding-left: 28px;
   font-size: var(--fs-md);
   color: var(--c-text);
@@ -407,9 +401,9 @@
 
 .budget-row__assigned,
 .budget-row__activity {
-  width: 140px;
-  min-width: 140px;
-  max-width: 140px;
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
   flex-shrink: 0;
   text-align: right;
   font-family: var(--font-mono);
@@ -424,9 +418,9 @@
 }
 
 .budget-row__available {
-  width: 140px;
-  min-width: 140px;
-  max-width: 140px;
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
   flex-shrink: 0;
   text-align: right;
   display: flex;
