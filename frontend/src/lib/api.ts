@@ -99,12 +99,12 @@ function handleUnauthorized(status: number) {
   }
 }
 
-export async function apiPost<T = unknown>(path: string, body: unknown): Promise<T> {
+export async function apiPost<T = unknown>(path: string, body: unknown, extraHeaders?: Record<string, string>): Promise<T> {
   updateSyncStatus('syncing')
   try {
     const res = await fetch(path, {
       method: 'POST',
-      headers: JSON_HEADERS,
+      headers: { ...JSON_HEADERS, ...extraHeaders },
       body: JSON.stringify(body),
     })
     if (!res.ok) {

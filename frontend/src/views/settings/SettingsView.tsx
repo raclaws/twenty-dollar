@@ -43,7 +43,7 @@ const SettingsView: Component = () => {
     setClearing(true)
     try {
       // Clear server-side first
-      await apiPost('/api/reset', {})
+      await apiPost('/api/reset', {}, { 'X-Confirm-Destructive': 'yes-delete-all-data' })
 
       // Clear local IDB
       await raw.clear('transactions')

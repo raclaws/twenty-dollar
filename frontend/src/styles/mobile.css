@@ -156,3 +156,38 @@
     to { transform: translateY(0); }
   }
 }
+
+/* ─── Budget View: Mobile Overrides ─── */
+@media (max-width: 768px) {
+  .budget-view__topbar {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: var(--sp-3);
+    gap: var(--sp-2);
+  }
+  .month-nav {
+    width: 100%;
+    justify-content: center;
+  }
+  .budget-view__actions {
+    width: 100%;
+    justify-content: center;
+  }
+  .budget-group__header {
+    border-radius: var(--r-md);
+  }
+  .budget-grid__header { display: none; }
+  .budget-row {
+    flex-wrap: wrap;
+    height: auto;
+    padding: var(--sp-2) var(--sp-3);
+    gap: var(--sp-1);
+  }
+  .budget-row__name { flex: 1; min-width: 0; }
+  .budget-row__target { display: none; }
+  .budget-row__health { display: none; }
+  .budget-row__assigned,
+  .budget-row__activity { display: none; }
+  .budget-row__available { margin-left: auto; }
+  .budget-row__status { display: none; }
+}
