@@ -1,0 +1,156 @@
+/* ─── Transaction Sheet (mobile-only bottom sheet for editing) ─── */
+.txn-sheet-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 199;
+  animation: fade-in var(--dur-fast) var(--ease);
+}
+
+.txn-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--c-mantle);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  padding: var(--sp-3) var(--sp-4) calc(var(--sp-6) + env(safe-area-inset-bottom));
+  animation: sheet-up var(--dur-normal) var(--ease);
+  z-index: 200;
+}
+
+.txn-sheet__handle {
+  width: 32px;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--c-surface1);
+  margin: 0 auto var(--sp-4);
+}
+
+.txn-sheet__hero {
+  text-align: center;
+  padding: var(--sp-2) 0 var(--sp-4);
+}
+
+.txn-sheet__hero-amount {
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--c-text);
+}
+
+.txn-sheet__hero-category {
+  font-size: var(--fs-xs);
+  color: var(--c-subtext0);
+  margin-top: var(--sp-1);
+}
+
+.txn-sheet__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.txn-sheet__field {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--c-surface0);
+  border-radius: var(--r-md);
+  min-height: var(--touch-min);
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.txn-sheet__field:active {
+  background: var(--c-surface1);
+}
+
+.txn-sheet__field--active {
+  outline: 2px solid var(--c-interactive);
+  outline-offset: -2px;
+}
+
+.txn-sheet__field-label {
+  font-size: var(--fs-xs);
+  color: var(--c-subtext0);
+  width: 72px;
+  flex-shrink: 0;
+}
+
+.txn-sheet__field-value {
+  flex: 1;
+  font-size: var(--fs-md);
+  color: var(--c-text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.txn-sheet__field-value--empty {
+  color: var(--c-overlay0);
+  font-style: italic;
+}
+
+.txn-sheet__picker-area {
+  padding: var(--sp-2) var(--sp-3);
+  position: relative;
+}
+
+.txn-sheet__memo-input {
+  flex: 1;
+  font-size: var(--fs-md);
+  color: var(--c-text);
+  background: none;
+  border: none;
+  outline: none;
+  min-width: 0;
+}
+
+.txn-sheet__actions {
+  display: flex;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+}
+
+.txn-sheet__btn-delete {
+  flex: 1;
+  min-height: var(--touch-min);
+  border-radius: var(--r-md);
+  background: var(--c-negative-bg);
+  color: var(--c-negative);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  cursor: pointer;
+}
+
+.txn-sheet__btn-done {
+  flex: 2;
+  min-height: var(--touch-min);
+  border-radius: var(--r-md);
+  background: var(--c-interactive);
+  color: var(--c-crust);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  border: none;
+  cursor: pointer;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

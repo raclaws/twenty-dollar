@@ -9,6 +9,7 @@ import { apiPost, apiPatch, apiDelete } from '~/lib/api'
 import { pushUndo, useUndoKeyboard } from '~/lib/undo'
 import { clampMenuPosition } from '~/lib/ui'
 import { confirmAction } from '~/components/ConfirmDialog'
+import AccountSheet from '~/components/AccountSheet'
 import EntityPicker, { type EntityPickerSection } from '~/components/EntityPicker'
 import type { Record } from '~/lib/sync-engine/types'
 
@@ -53,6 +54,17 @@ const AccountsView: Component = () => {
   // Per-cell edit state
   const [editingRowId, setEditingRowId] = createSignal<string | null>(null)
   const [activeCell, setActiveCell] = createSignal<CellField | null>(null)
+
+  // Mobile sheet state
+  const [isMobile, setIsMobile] = createSignal(window.matchMedia('(max-width: 768px)').matches)
+  const [sheetAccount, setSheetAccount] = createSignal<Record | null>(null)
+
+  onMount(() => {
+    const mq = window.matchMedia('(max-width: 768px)')
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    onCleanup(() => mq.removeEventListener('change', handler))
+  })
 
   // Context menu state
   const [ctxMenu, setCtxMenu] = createSignal<{ x: number; y: number; account: Record } | null>(null)
@@ -330,6 +342,10 @@ const AccountsView: Component = () => {
   // --- Navigation ---
   function handleRowClick(account: Record) {
     if (editingRowId() === (account.id as string)) return
+    if (isMobile()) {
+      setSheetAccount(account)
+      return
+    }
     navigate(`/transactions?account=${account.id}`)
   }
 
@@ -607,6 +623,22 @@ const AccountsView: Component = () => {
                 </div>
               </div>
             </div>
+          )
+        }}
+      </Show>
+
+      <Show when={sheetAccount()}>
+        {(account) => {
+          const stats = () => accountStats().get(account().id as string) ?? { balance: 0, txCount: 0 }
+          return (
+            <AccountSheet
+              account={account()}
+              balance={stats().balance}
+              txCount={stats().txCount}
+              onClose={() => setSheetAccount(null)}
+              onDeleted={() => reactive.notify('accounts')}
+              onReconcile={(acc) => { setSheetAccount(null); openReconcile(acc) }}
+            />
           )
         }}
       </Show>

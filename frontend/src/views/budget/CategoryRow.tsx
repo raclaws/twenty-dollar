@@ -23,12 +23,14 @@ interface CategoryRowProps {
   onMoveTo?: (catId: string) => void
   onViewDetail?: (catId: string) => void
   onSetTarget?: (catId: string) => void
+  onMobileEdit?: (budget: CategoryBudget) => void
 }
 
 const CategoryRow: Component<CategoryRowProps> = (props) => {
   const { raw, reactive } = useStore()
   const { filter } = useBudgetFilter()
   const [editing, setEditing] = createSignal(false)
+  const [mobileExpanded, setMobileExpanded] = createSignal(false)
   const [ctxMenu, setCtxMenu] = createSignal<{ x: number; y: number } | null>(null)
   const [ctxSub, setCtxSub] = createSignal<'groups' | null>(null)
   const [iconPickerOpen, setIconPickerOpen] = createSignal(false)
@@ -175,12 +177,12 @@ const CategoryRow: Component<CategoryRowProps> = (props) => {
 
   return (
     <>
-    <div ref={rowRef} class={`budget-row ${isHighlighted() ? 'budget-row--highlighted' : ''}`} onContextMenu={handleContextMenu}>
+    <div ref={rowRef} class={`budget-row ${isHighlighted() ? 'budget-row--highlighted' : ''} ${mobileExpanded() ? 'budget-row--expanded' : ''}`} onContextMenu={handleContextMenu} onClick={(e) => { if (e.target === e.currentTarget || (e.currentTarget as HTMLElement).contains(e.target as Node) && !(e.target as HTMLElement).closest('[data-interactive]')) { if (props.onMobileEdit) { props.onMobileEdit(props.budget) } else { setMobileExpanded(!mobileExpanded()) } } }}>
       <div class="budget-row__name" style={{ cursor: 'pointer', position: 'relative' }}>
         <span class="budget-row__icon" onClick={(e) => { e.stopPropagation(); setIconPickerOpen(!iconPickerOpen()) }} title="Change icon">
           <EntityIcon icon={props.budget.categoryIcon} name={props.budget.categoryName} size={16} />
         </span>
-        <span onClick={() => props.onViewDetail?.(props.budget.categoryId)}>{props.budget.categoryName}</span>
+        <span data-interactive onClick={(e) => { e.stopPropagation(); if (props.onMobileEdit) { props.onMobileEdit(props.budget) } else { props.onViewDetail?.(props.budget.categoryId) } }}>{props.budget.categoryName}</span>
         <Show when={iconPickerOpen()}>
           <IconPicker
             value={props.budget.categoryIcon}
@@ -239,7 +241,7 @@ const CategoryRow: Component<CategoryRowProps> = (props) => {
       </div>
       <div class="budget-row__assigned cell--number">
         <Show when={editing()} fallback={
-          <div class="assigned-cell" onClick={() => setEditing(true)} tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && setEditing(true)}>
+          <div class="assigned-cell" data-interactive onClick={(e) => { e.stopPropagation(); setEditing(true) }} tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && setEditing(true)}>
             <span class="money">{formatMoneyUnsigned(props.budget.assigned)}</span>
           </div>
         }>
@@ -268,6 +270,19 @@ const CategoryRow: Component<CategoryRowProps> = (props) => {
           <span class="budget-row__status-text">{statusLabel().text}</span>
         </span>
       </div>
+      {/* Mobile expanded details (visible only via CSS at mobile breakpoint) */}
+      <Show when={mobileExpanded()}>
+        <div class="budget-row__mobile-detail">
+          <div class="budget-row__mobile-detail-item">
+            <span class="budget-row__mobile-detail-label">Assigned</span>
+            <MoneyDisplay amount={props.budget.assigned} />
+          </div>
+          <div class="budget-row__mobile-detail-item">
+            <span class="budget-row__mobile-detail-label">Activity</span>
+            <MoneyDisplay amount={props.budget.activity} />
+          </div>
+        </div>
+      </Show>
     </div>
     {/* Right-click context menu */}
     <Show when={ctxMenu()}>

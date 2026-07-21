@@ -81,3 +81,14 @@ input[type="number"]::-webkit-outer-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* ─── Mobile: Touch Targets & Safe Areas ─── */
+@media (max-width: 768px) {
+  button,
+  a,
+  [role="button"],
+  [role="tab"],
+  [tabindex="0"] {
+    min-height: var(--touch-min);
+  }
+}

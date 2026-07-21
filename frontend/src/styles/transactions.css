@@ -909,3 +909,48 @@
   background: var(--c-surface0);
   color: var(--c-text);
 }
+
+/* ─── Mobile: Transactions ─── */
+@media (max-width: 768px) {
+  .txn-table { padding: var(--sp-3); padding-bottom: 0; }
+  .txn-table__header { display: none; }
+  .starting-balance-banner { margin: 0 0 var(--sp-2); }
+
+  .txn-table__scroll { --row-h: 60px; }
+  .txn-row {
+    flex-wrap: wrap !important;
+    height: auto !important;
+    min-height: 52px;
+    padding: var(--sp-3) !important;
+    border-radius: var(--r-md);
+    background: var(--c-surface0);
+    margin-bottom: var(--sp-2);
+    gap: var(--sp-1);
+  }
+  .txn-row:hover { background: var(--c-surface1); }
+
+  .txn-row .txn-row__check,
+  .txn-row .txn-row__account,
+  .txn-row .txn-row__memo,
+  .txn-row .txn-row__balance,
+  .txn-row .txn-row__status { display: none !important; }
+
+  .txn-row .txn-row__payee { flex: 1 1 60%; min-width: 0; font-size: var(--fs-sm); order: 1; pointer-events: none; width: auto !important; max-width: none !important; }
+  .txn-row .txn-row__amount { flex: 0 0 auto; width: auto !important; min-width: auto !important; max-width: none !important; order: 2; pointer-events: none; text-align: right; font-size: var(--fs-sm); }
+  .txn-row .txn-row__date { flex: 0 0 auto; width: auto !important; font-size: var(--fs-xs); color: var(--c-overlay0); order: 3; pointer-events: none; }
+  .txn-row .txn-row__category { flex: 1 1 auto; width: auto !important; font-size: var(--fs-xs); color: var(--c-overlay0); order: 4; pointer-events: none; }
+
+  /* Hide desktop-only decorators on mobile */
+  .txn-row .payee-initial { display: none; }
+  .txn-row .txn-row__source-icon { display: none; }
+  .txn-row .cell--select::after { display: none !important; }
+  .txn-row .txn-row__category-display .entity-icon { display: none; }
+  .txn-row__payee-display { gap: 0 !important; }
+  .txn-row__category-display { gap: 2px !important; }
+
+  /* Group header row adjustments */
+  .txn-group-header { flex-wrap: wrap; padding: var(--sp-2) var(--sp-3); }
+
+  .add-txn-dialog { width: 100%; max-width: 100%; border-radius: 0; height: 100dvh; }
+  .add-txn-overlay { align-items: stretch; }
+}

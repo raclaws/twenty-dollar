@@ -1,4 +1,5 @@
 import { createSignal, Show, type Component } from 'solid-js'
+import { A } from '@solidjs/router'
 import { getCurrencyCode, setCurrencyCode, CURRENCIES } from '~/lib/format'
 import { useStore } from '~/App'
 import { apiPost, apiGet } from '~/lib/api'
@@ -102,6 +103,14 @@ const SettingsView: Component = () => {
         <span class="settings-view__title">Settings</span>
       </div>
       <div class="settings-view__content">
+        <section class="settings-section">
+          <h3 class="settings-section__title">Manage</h3>
+          <div class="settings-section__actions">
+            <A href="/recurring" class="btn btn--secondary">Recurring Transactions</A>
+            <A href="/import" class="btn btn--secondary">Import</A>
+          </div>
+        </section>
+
         <section class="settings-section">
           <h3 class="settings-section__title">Currency</h3>
           <div class="settings-section__field">

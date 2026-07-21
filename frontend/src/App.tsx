@@ -1,6 +1,7 @@
 import { createSignal, createContext, useContext, createMemo, createEffect, onMount, Show, For, type ParentComponent, type Accessor } from 'solid-js'
 import { A, useLocation, useNavigate } from '@solidjs/router'
 import { LayoutGrid, ArrowLeftRight, CreditCard, Settings, Wallet, AlertTriangle, TrendingDown, AlertCircle, CircleDot, Upload, RefreshCw, Sun, Moon, LogOut } from 'lucide-solid'
+import MobileNav from './components/MobileNav'
 import { ACCOUNT_TYPE_ICONS } from './lib/icons'
 import type { AppStore } from './lib/store'
 import { initStore } from './lib/store'
@@ -131,6 +132,7 @@ const App: ParentComponent = (props) => {
                   <main class="main">
                     {props.children}
                   </main>
+                  <MobileNav />
                   <Toast />
                   <ConfirmDialog />
                 </div>

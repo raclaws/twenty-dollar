@@ -84,6 +84,11 @@
   --row-h-lg: 48px;
   --input-h: 36px;
   --input-h-lg: 40px;
+
+  /* ─── Mobile ─── */
+  --mobile-bp: 768px;
+  --touch-min: 44px;
+  --nav-h: 64px;
 }
 
 /* ─── Light Mode ─── */

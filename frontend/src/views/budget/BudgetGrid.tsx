@@ -3,7 +3,7 @@ import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-solid'
 import GroupRow from './GroupRow'
 import InlineForm from '~/components/InlineForm'
 import type { BudgetStore } from '~/lib/budget-signals'
-import type { BudgetGroup } from '~/lib/budget-engine'
+import type { BudgetGroup, CategoryBudget } from '~/lib/budget-engine'
 import type { Record } from '~/lib/sync-engine/types'
 
 type SortField = 'assigned' | 'activity' | 'available'
@@ -24,6 +24,7 @@ interface BudgetGridProps {
   onMoveTo: (catId: string) => void
   onViewDetail: (catId: string) => void
   onSetTarget: (catId: string) => void
+  onMobileEdit?: (budget: CategoryBudget) => void
   showAddGroup: boolean
   showAddCategory: string | null
   editingGroup: string | null
@@ -116,6 +117,7 @@ const BudgetGrid: Component<BudgetGridProps> = (props) => {
             onMoveTo={props.onMoveTo}
             onViewDetail={props.onViewDetail}
             onSetTarget={props.onSetTarget}
+            onMobileEdit={props.onMobileEdit}
             onRenameSubmit={(values) => props.onRenameGroupSubmit(group.groupId, values)}
             onRenameCategorySubmit={props.onRenameCategorySubmit}
             onCreateCategory={props.onCreateCategory}

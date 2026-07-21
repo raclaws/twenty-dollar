@@ -1,6 +1,6 @@
-import { createSignal, createEffect, onMount, onCleanup, Show, type Component } from 'solid-js'
+import { createSignal, createEffect, createMemo, onMount, onCleanup, Show, type Component } from 'solid-js'
 import { useSearchParams } from '@solidjs/router'
-import { Wallet, X, Plus } from 'lucide-solid'
+import { Wallet, X, Plus, AlertTriangle, TrendingDown, CircleDot, AlertCircle } from 'lucide-solid'
 import { useStore, useMonth, useBudgetFilter, type BudgetFilter } from '~/App'
 import { createQuery } from '~/lib/solid-binding'
 import { createBudgetStore } from '~/lib/budget-signals'
@@ -12,6 +12,7 @@ import { confirmAction } from '~/components/ConfirmDialog'
 import DetailDialog from '~/components/DetailDialog'
 import InlineForm from '~/components/InlineForm'
 import BudgetGrid from './BudgetGrid'
+import BudgetSheet from '~/components/BudgetSheet'
 import MonthNavigator from './MonthNavigator'
 import CoverDialog, { type TransferTarget } from './CoverDialog'
 import CategoryDetail from './CategoryDetail'
@@ -30,6 +31,41 @@ const BudgetView: Component = () => {
 
   const hasCategories = () => budgetStore.budget().groups.some(g => g.categories.length > 0)
   const hasGroups = () => categoryGroups().length > 0
+
+  // Health counters (shared between sidebar and mobile chip bar)
+  const overspentCount = createMemo(() => {
+    const groups = budgetStore.budget().groups
+    let count = 0
+    for (const g of groups) for (const c of g.categories) if (c.activity < 0 && c.available < 0) count++
+    return count
+  })
+  const underfundedCount = createMemo(() => {
+    const groups = budgetStore.budget().groups
+    let count = 0
+    for (const g of groups) for (const c of g.categories) if (c.target?.isUnderfunded === true) count++
+    return count
+  })
+  const unfundedCount = createMemo(() => {
+    const groups = budgetStore.budget().groups
+    let count = 0
+    for (const g of groups) for (const c of g.categories) if (c.assigned === 0 && c.available <= 0) count++
+    return count
+  })
+  const overAssigned = createMemo(() => {
+    const rta = budgetStore.rta()
+    return rta < 0 ? Math.abs(rta) : 0
+  })
+
+  // Mobile sheet state
+  const [isMobile, setIsMobile] = createSignal(window.matchMedia('(max-width: 768px)').matches)
+  const [sheetBudget, setSheetBudget] = createSignal<import('~/lib/budget-engine').CategoryBudget | null>(null)
+
+  onMount(() => {
+    const mq = window.matchMedia('(max-width: 768px)')
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    onCleanup(() => mq.removeEventListener('change', handler))
+  })
 
   const [showAddGroup, setShowAddGroup] = createSignal(false)
   const [showAddCategory, setShowAddCategory] = createSignal<string | null>(null)
@@ -302,6 +338,29 @@ const BudgetView: Component = () => {
           </div>
         </Show>
       </div>
+      {/* Mobile-only health chip bar (desktop shows these in sidebar) */}
+      <div class="budget-view__mobile-chips">
+        <Show when={overAssigned() > 0}>
+          <button class="mobile-chip mobile-chip--negative" onClick={() => setFilter('overassigned')}>
+            <AlertCircle size={12} /> Over-assigned {formatMoneyUnsigned(overAssigned())}
+          </button>
+        </Show>
+        <Show when={overspentCount() > 0}>
+          <button class="mobile-chip mobile-chip--negative" onClick={() => setFilter('overspent')}>
+            <AlertTriangle size={12} /> Overspent {overspentCount()}
+          </button>
+        </Show>
+        <Show when={underfundedCount() > 0}>
+          <button class="mobile-chip mobile-chip--warning" onClick={() => setFilter('underfunded')}>
+            <TrendingDown size={12} /> Underfunded {underfundedCount()}
+          </button>
+        </Show>
+        <Show when={unfundedCount() > 0}>
+          <button class="mobile-chip mobile-chip--muted" onClick={() => setFilter('unfunded')}>
+            <CircleDot size={12} /> Unfunded {unfundedCount()}
+          </button>
+        </Show>
+      </div>
       <Show when={detailBudget()}>
         {(budget) => (
           <DetailDialog
@@ -406,6 +465,7 @@ const BudgetView: Component = () => {
           }}
           onViewDetail={(catId) => setDetailCatId(catId)}
           onSetTarget={(catId) => setTargetCatId(catId)}
+          onMobileEdit={isMobile() ? (budget) => setSheetBudget(budget) : undefined}
           showAddGroup={showAddGroup()}
           showAddCategory={showAddCategory()}
           editingGroup={editingGroup()}
@@ -417,6 +477,28 @@ const BudgetView: Component = () => {
           onCancelAdd={() => { setShowAddGroup(false); setShowAddCategory(null) }}
           onCancelEdit={() => { setEditingGroup(null); setEditingCategory(null) }}
         />
+      </Show>
+
+      <Show when={sheetBudget()}>
+        {(budget) => (
+          <BudgetSheet
+            budget={budget()}
+            month={month}
+            onClose={() => setSheetBudget(null)}
+            onViewDetail={(catId) => { setSheetBudget(null); setDetailCatId(catId) }}
+            onSetTarget={(catId) => { setSheetBudget(null); setTargetCatId(catId) }}
+            onCoverFrom={(catId) => {
+              setSheetBudget(null)
+              const cat = budgetStore.budget().categoryMap.get(catId)
+              setCoverTarget({ catId, catName: cat?.categoryName ?? '', side: 'from' })
+            }}
+            onMoveTo={(catId) => {
+              setSheetBudget(null)
+              const cat = budgetStore.budget().categoryMap.get(catId)
+              setCoverTarget({ catId, catName: cat?.categoryName ?? '', side: 'to' })
+            }}
+          />
+        )}
       </Show>
     </div>
   )

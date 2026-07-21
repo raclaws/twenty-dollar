@@ -11,6 +11,7 @@ import { groupItems, type GroupConfig } from '~/lib/grouping'
 import GroupHeader from '~/components/GroupHeader'
 import MoneyDisplay from '~/components/MoneyDisplay'
 import TransactionRow from './TransactionRow'
+import TransactionSheet from '~/components/TransactionSheet'
 import AddTransactionRow from './AddTransactionRow'
 import ScheduleDialog from './ScheduleDialog'
 import type { Record } from '~/lib/sync-engine/types'
@@ -28,6 +29,17 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
   const accounts = createQuery(reactive, 'accounts')
   const payees = createQuery(reactive, 'payees')
   const categories = createQuery(reactive, 'categories')
+
+  // Mobile detection + sheet state
+  const [isMobile, setIsMobile] = createSignal(window.matchMedia('(max-width: 768px)').matches)
+  const [sheetTx, setSheetTx] = createSignal<Record | null>(null)
+
+  onMount(() => {
+    const mq = window.matchMedia('(max-width: 768px)')
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    onCleanup(() => mq.removeEventListener('change', handler))
+  })
 
   // Sort & filter state
   type SortField = 'date' | 'payee' | 'category' | 'amount'
@@ -222,20 +234,30 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
   })
 
   // Virtual scroll state
-  const ROW_HEIGHT = 36
+  const DEFAULT_ROW_HEIGHT = 36
   const BUFFER = 5
   let containerRef: HTMLDivElement | undefined
   const [scrollTop, setScrollTop] = createSignal(0)
   const [containerHeight, setContainerHeight] = createSignal(600)
+  const [rowHeight, setRowHeight] = createSignal(DEFAULT_ROW_HEIGHT)
 
   const visibleRange = createMemo(() => {
     const total = virtualItems().length
-    const start = Math.max(0, Math.floor(scrollTop() / ROW_HEIGHT) - BUFFER)
-    const end = Math.min(total, Math.ceil((scrollTop() + containerHeight()) / ROW_HEIGHT) + BUFFER)
+    const h = rowHeight()
+    const start = Math.max(0, Math.floor(scrollTop() / h) - BUFFER)
+    const end = Math.min(total, Math.ceil((scrollTop() + containerHeight()) / h) + BUFFER)
     return { start, end }
   })
 
-  const totalHeight = createMemo(() => virtualItems().length * ROW_HEIGHT)
+  const totalHeight = createMemo(() => virtualItems().length * rowHeight())
+
+  const txLookup = createMemo(() => {
+    const map = new Map<string, Record>()
+    for (const item of virtualItems()) {
+      if (item.type === 'row') map.set((item as any).txId, (item as any).tx)
+    }
+    return map
+  })
 
   function handleScroll() {
     if (containerRef) {
@@ -246,8 +268,16 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
   onMount(() => {
     if (containerRef) {
       setContainerHeight(containerRef.clientHeight)
+      const computeRowHeight = () => {
+        const val = parseInt(getComputedStyle(containerRef!).getPropertyValue('--row-h'), 10)
+        setRowHeight(val > 0 ? val : DEFAULT_ROW_HEIGHT)
+      }
+      computeRowHeight()
       const observer = new ResizeObserver(() => {
-        if (containerRef) setContainerHeight(containerRef.clientHeight)
+        if (containerRef) {
+          setContainerHeight(containerRef.clientHeight)
+          computeRowHeight()
+        }
       })
       observer.observe(containerRef)
       onCleanup(() => observer.disconnect())
@@ -356,6 +386,14 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
   // --- Bulk selection ---
   function handleRowSelect(txId: string, e: MouseEvent) {
     if (editingRowId()) return
+
+    // Mobile: tap row opens edit sheet
+    if (isMobile()) {
+      const tx = txLookup().get(txId)
+      if (tx) setSheetTx(tx)
+      return
+    }
+
     if (!e.ctrlKey && !e.metaKey) return
 
     e.stopPropagation()
@@ -665,7 +703,7 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
           </div>
         }>
           <div style={{ height: `${totalHeight()}px`, position: 'relative' }}>
-            <div style={{ transform: `translateY(${visibleRange().start * ROW_HEIGHT}px)` }}>
+            <div style={{ transform: `translateY(${visibleRange().start * rowHeight()}px)` }}>
               <For each={virtualItems().slice(visibleRange().start, visibleRange().end)}>
                 {(item) => {
                   if (item.type === 'header') {
@@ -694,7 +732,13 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
                       hideCategory={!!props.compact}
                       hideBalance={!!props.compact}
                       editingRowId={editingRowId()}
-                      onEditStart={setEditingRowId}
+                      onEditStart={(id) => {
+                        if (isMobile()) {
+                          setSheetTx(row.tx)
+                        } else {
+                          setEditingRowId(id)
+                        }
+                      }}
                       onEditEnd={() => setEditingRowId(null)}
                       knownPayees={knownPayees()}
                     />
@@ -741,6 +785,16 @@ const TransactionTable: Component<TransactionTableProps> = (props) => {
             }}
             onClose={() => setScheduleTx(null)}
             onCreated={() => reactive.notify('schedules')}
+          />
+        )}
+      </Show>
+
+      <Show when={sheetTx()}>
+        {(tx) => (
+          <TransactionSheet
+            tx={tx()}
+            onClose={() => setSheetTx(null)}
+            onDeleted={() => reactive.notify('transactions')}
           />
         )}
       </Show>

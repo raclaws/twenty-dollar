@@ -33,6 +33,8 @@ import './styles/import.css'
 import './styles/schedules.css'
 import './styles/auth.css'
 import './styles/icon-picker.css'
+import './styles/transaction-sheet.css'
+import './styles/mobile.css'
 
 render(
   () => (

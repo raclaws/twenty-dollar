@@ -1,0 +1,158 @@
+/* ─── Mobile Responsive Overrides ─── */
+/* Single file for all responsive rules — imported last in index.tsx */
+
+/* ─── Shell: Hide sidebar, show bottom nav ─── */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .mobile-nav { display: flex; }
+  .app-shell { flex-direction: column; }
+  .main { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); }
+
+  /* Sync indicator: dedicated top strip */
+  .sync-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 28px;
+    justify-content: center;
+    background: var(--c-mantle);
+    border-bottom: 1px solid var(--c-surface0);
+    padding: 0 var(--sp-4);
+    z-index: 100;
+  }
+  .main { padding-top: 28px; }
+}
+
+@media (min-width: 769px) {
+  .mobile-nav { display: none; }
+}
+
+/* ─── Mobile Bottom Nav Styles ─── */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--nav-h);
+  background: var(--c-mantle);
+  border-top: 1px solid var(--c-surface0);
+  align-items: center;
+  justify-content: space-around;
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 100;
+}
+
+.mobile-nav__tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-1);
+  min-height: var(--touch-min);
+  min-width: var(--touch-min);
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--r-md);
+  color: var(--c-overlay0);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: var(--fw-medium);
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.mobile-nav__tab--active {
+  color: var(--c-interactive);
+}
+
+.mobile-nav__tab:focus-visible {
+  outline: 2px solid var(--c-interactive);
+  outline-offset: -2px;
+}
+
+.mobile-nav__label {
+  line-height: 1;
+}
+
+/* ─── Supporting Views: Mobile Overrides ─── */
+@media (max-width: 768px) {
+  /* Accounts */
+  .accounts-view__topbar { padding: var(--sp-3); gap: var(--sp-2); }
+  .accounts-view__picker { width: 100%; }
+  .accounts-table { padding: var(--sp-3); }
+  .accounts-table__header { display: none; }
+  .accounts-table__row {
+    flex-wrap: wrap;
+    height: auto;
+    padding: var(--sp-3);
+    background: var(--c-surface0);
+    border-radius: var(--r-md);
+    margin-bottom: var(--sp-2);
+    gap: var(--sp-1);
+  }
+  .accounts-table__col--type { display: none; }
+  .accounts-table__col--count { display: none; }
+  .accounts-table__col--name { flex: 1; min-width: 0; }
+  .accounts-table__col--balance { width: auto; text-align: right; margin-left: auto; }
+
+  /* Settings */
+  .settings-view__topbar { padding: var(--sp-3); }
+
+  /* Import */
+  .import-view__topbar { padding: var(--sp-3); flex-wrap: wrap; }
+  .import-view__tabs { margin-left: 0; width: 100%; }
+  .import-view__content { padding: var(--sp-3); }
+  .import-dropzone { padding: var(--sp-6) var(--sp-3); }
+  .import-preview__table-header { grid-template-columns: 32px 70px 1fr 80px; font-size: 10px; }
+  .import-row { grid-template-columns: 32px 70px 1fr 80px; }
+
+  /* Schedules / Recurring */
+  .schedules-view__topbar { padding: var(--sp-3); }
+  .schedules-view__content { padding: var(--sp-3); }
+  .schedules-view__header { display: none; }
+  .schedule-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-1);
+    padding: var(--sp-3);
+    background: var(--c-surface0);
+    border-radius: var(--r-md);
+    margin-bottom: var(--sp-2);
+  }
+  .schedule-row__payee { flex: 1; min-width: 0; }
+  .schedule-row__amount { margin-left: auto; }
+  .schedule-row__account,
+  .schedule-row__category { font-size: var(--fs-xs); width: auto; }
+  .schedule-row__frequency,
+  .schedule-row__next { font-size: var(--fs-xs); }
+  .schedule-row__actions { width: auto; }
+}
+
+/* ─── Context Menus → Bottom Action Sheets on Mobile ─── */
+@media (max-width: 768px) {
+  .ctx-menu,
+  .budget-row__menu,
+  .budget-group__menu {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    width: 100%;
+    max-width: 100%;
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    padding: var(--sp-3) 0 calc(var(--sp-3) + env(safe-area-inset-bottom));
+    box-shadow: var(--shadow-lg);
+    animation: sheet-up var(--dur-normal) var(--ease);
+  }
+  .ctx-menu__item,
+  .budget-row__menu-item,
+  .budget-group__menu-item {
+    min-height: var(--touch-min);
+    padding: var(--sp-3) var(--sp-5);
+    font-size: var(--fs-md);
+  }
+  @keyframes sheet-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+}

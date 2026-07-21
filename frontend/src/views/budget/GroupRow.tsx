@@ -9,7 +9,7 @@ import { apiPatch } from '~/lib/api'
 import { clampMenuPosition } from '~/lib/ui'
 import { pushUndo } from '~/lib/undo'
 import CategoryRow from './CategoryRow'
-import type { BudgetGroup } from '~/lib/budget-engine'
+import type { BudgetGroup, CategoryBudget } from '~/lib/budget-engine'
 import type { Accessor } from 'solid-js'
 import type { Record } from '~/lib/sync-engine/types'
 
@@ -31,6 +31,7 @@ interface GroupRowProps {
   onMoveTo: (catId: string) => void
   onViewDetail: (catId: string) => void
   onSetTarget: (catId: string) => void
+  onMobileEdit?: (budget: CategoryBudget) => void
   onRenameSubmit: (values: Record<string, string>) => void
   onRenameCategorySubmit: (id: string, values: Record<string, string>) => void
   onCreateCategory: (values: Record<string, string>) => void
@@ -181,6 +182,7 @@ const GroupRow: Component<GroupRowProps> = (props) => {
               onMoveTo={(catId) => props.onMoveTo(catId)}
               onViewDetail={(catId) => props.onViewDetail(catId)}
               onSetTarget={(catId) => props.onSetTarget(catId)}
+              onMobileEdit={props.onMobileEdit}
             />
           </Show>
         )}
