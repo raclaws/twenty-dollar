@@ -1,7 +1,7 @@
 import { createSignal, createMemo, type Component, For, Show, type Accessor } from 'solid-js'
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-solid'
 import GroupRow from './GroupRow'
-import InlineForm from '~/components/InlineForm'
+import FormDialog from '~/components/FormDialog'
 import type { BudgetStore } from '~/lib/budget-signals'
 import type { BudgetGroup, CategoryBudget } from '~/lib/budget-engine'
 import type { Record } from '~/lib/sync-engine/types'
@@ -138,7 +138,8 @@ const BudgetGrid: Component<BudgetGridProps> = (props) => {
             <span class="budget-grid__add-group-text">Add group...</span>
           </div>
         }>
-          <InlineForm
+          <FormDialog
+            title="Create Group"
             fields={[{ key: 'name', label: 'Group name', type: 'text', required: true, placeholder: 'Group name' }]}
             onSubmit={props.onCreateGroup}
             onCancel={props.onCancelAdd}

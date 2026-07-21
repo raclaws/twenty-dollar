@@ -137,6 +137,25 @@
   padding: var(--sp-2) 0;
 }
 
+/* ─── Form Dialog ─── */
+.form-dialog__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.form-dialog__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.form-dialog__label {
+  font-size: var(--fs-xs);
+  color: var(--c-subtext0);
+  font-weight: var(--fw-medium);
+}
+
 .inline-form__fields {
   display: flex;
   gap: var(--sp-2);

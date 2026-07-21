@@ -2,7 +2,7 @@ import { createSignal, onMount, onCleanup, type Component, For, Show } from 'sol
 import { ChevronRight, ChevronDown, Plus, AlertTriangle, TrendingDown } from 'lucide-solid'
 import MoneyDisplay from '~/components/MoneyDisplay'
 import HealthRing from '~/components/HealthRing'
-import InlineForm from '~/components/InlineForm'
+import FormDialog from '~/components/FormDialog'
 import IconPicker, { EntityIcon } from '~/components/IconPicker'
 import { useStore } from '~/App'
 import { apiPatch } from '~/lib/api'
@@ -105,14 +105,13 @@ const GroupRow: Component<GroupRowProps> = (props) => {
   return (
     <div class="budget-group">
       <Show when={!props.isEditing} fallback={
-        <div class="budget-group__header">
-          <InlineForm
-            fields={[{ key: 'name', label: 'Group name', type: 'text', required: true, placeholder: props.group.groupName }]}
-            onSubmit={props.onRenameSubmit}
-            onCancel={props.onCancelEdit}
-            submitLabel="Rename"
-          />
-        </div>
+        <FormDialog
+          title="Rename Group"
+          fields={[{ key: 'name', label: 'Group name', type: 'text', required: true, placeholder: props.group.groupName, defaultValue: props.group.groupName }]}
+          onSubmit={props.onRenameSubmit}
+          onCancel={props.onCancelEdit}
+          submitLabel="Rename"
+        />
       }>
         <div ref={headerRef} class="budget-group__header" onContextMenu={handleContextMenu}>
           <div class="budget-group__name" style={{ position: 'relative' }}>
@@ -162,14 +161,13 @@ const GroupRow: Component<GroupRowProps> = (props) => {
       <For each={props.group.categories}>
         {(cat) => (
           <Show when={props.editingCategoryId !== cat.categoryId} fallback={
-            <div class="budget-row">
-              <InlineForm
-                fields={[{ key: 'name', label: 'Category name', type: 'text', required: true, placeholder: cat.categoryName }]}
-                onSubmit={(values) => props.onRenameCategorySubmit(cat.categoryId, values)}
-                onCancel={props.onCancelEdit}
-                submitLabel="Rename"
-              />
-            </div>
+            <FormDialog
+              title="Rename Category"
+              fields={[{ key: 'name', label: 'Category name', type: 'text', required: true, placeholder: cat.categoryName, defaultValue: cat.categoryName }]}
+              onSubmit={(values) => props.onRenameCategorySubmit(cat.categoryId, values)}
+              onCancel={props.onCancelEdit}
+              submitLabel="Rename"
+            />
           }>
             <CategoryRow
               budget={cat}
@@ -195,14 +193,13 @@ const GroupRow: Component<GroupRowProps> = (props) => {
         </div>
       </Show>
       <Show when={props.showAddCategory}>
-        <div class="budget-row">
-          <InlineForm
-            fields={[{ key: 'name', label: 'Category name', type: 'text', required: true, placeholder: 'New category name' }]}
-            onSubmit={props.onCreateCategory}
-            onCancel={props.onCancelAdd}
-            submitLabel="Create"
-          />
-        </div>
+        <FormDialog
+          title="Add Category"
+          fields={[{ key: 'name', label: 'Category name', type: 'text', required: true, placeholder: 'New category name' }]}
+          onSubmit={props.onCreateCategory}
+          onCancel={props.onCancelAdd}
+          submitLabel="Create"
+        />
       </Show>
       </Show>
       {/* Right-click context menu */}

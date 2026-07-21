@@ -11,6 +11,7 @@ import { pushUndo } from '~/lib/undo'
 import { confirmAction } from '~/components/ConfirmDialog'
 import DetailDialog from '~/components/DetailDialog'
 import InlineForm from '~/components/InlineForm'
+import FormDialog from '~/components/FormDialog'
 import BudgetGrid from './BudgetGrid'
 import BudgetSheet from '~/components/BudgetSheet'
 import MonthNavigator from './MonthNavigator'
@@ -432,11 +433,12 @@ const BudgetView: Component = () => {
           <p class="empty-state__desc">Create a category group to start budgeting.</p>
           <div class="empty-state__actions">
             <Show when={!showAddGroup()} fallback={
-              <InlineForm
+              <FormDialog
+                title="Create Group"
                 fields={[{ key: 'name', label: 'Group name', type: 'text', required: true, placeholder: 'e.g. Housing, Food, Transport' }]}
                 onSubmit={createGroup}
                 onCancel={() => setShowAddGroup(false)}
-                submitLabel="Create Group"
+                submitLabel="Create"
               />
             }>
               <button class="btn btn--primary" onClick={() => setShowAddGroup(true)}>Create First Group</button>
