@@ -151,8 +151,8 @@
 }
 
 .budget-grid__col--target {
-  flex: 3;
-  min-width: 160px;
+  flex: 1;
+  min-width: 80px;
 }
 
 .budget-grid__col--num {
@@ -388,8 +388,8 @@
 }
 
 .budget-row__target {
-  flex: 3;
-  min-width: 160px;
+  flex: 1;
+  min-width: 80px;
   display: flex;
   align-items: center;
 }
@@ -882,4 +882,106 @@
   font-size: var(--fs-sm);
   color: var(--c-overlay0);
   font-style: italic;
+}
+
+/* ─── Mobile: Budget ─── */
+@media (max-width: 768px) {
+  .budget-view__topbar {
+    padding: var(--sp-3);
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+  .month-nav__label { min-width: auto; font-size: var(--fs-lg); }
+  .rta-banner { margin-left: 0; width: 100%; justify-content: center; }
+  .budget-grid__header { display: none; }
+  .budget-grid { padding: 0 var(--sp-3) var(--sp-3); }
+
+  /* Group row: hide numeric columns */
+  .budget-group__target,
+  .budget-group__assigned,
+  .budget-group__activity,
+  .budget-group__available,
+  .budget-group__status { display: none; }
+  .budget-group__health { width: 24px; min-width: 24px; max-width: 24px; }
+
+  /* Category row: collapse to name + available */
+  .budget-row__target,
+  .budget-row__assigned,
+  .budget-row__activity,
+  .budget-row__status { display: none; }
+  .budget-row__name { padding-left: var(--sp-2); }
+  .budget-row__health { width: 24px; min-width: 24px; max-width: 24px; }
+  .budget-row__available { width: auto; min-width: auto; max-width: none; margin-left: auto; }
+
+  /* Tap-to-expand detail row */
+  .budget-row__mobile-detail {
+    display: flex;
+    gap: var(--sp-4);
+    padding: var(--sp-2) var(--sp-4) var(--sp-3);
+    padding-left: calc(var(--sp-2) + 24px + var(--sp-2));
+    font-size: var(--fs-xs);
+    color: var(--c-subtext0);
+    border-bottom: 1px solid var(--c-surface0);
+    animation: detail-expand var(--dur-fast) var(--ease);
+  }
+  .budget-row__mobile-detail-item {
+    display: flex;
+    gap: var(--sp-2);
+    align-items: center;
+  }
+  .budget-row__mobile-detail-label {
+    color: var(--c-overlay0);
+  }
+  @keyframes detail-expand {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* Hide mobile detail on desktop */
+@media (min-width: 769px) {
+  .budget-row__mobile-detail { display: none; }
+  .budget-view__mobile-chips { display: none; }
+}
+
+/* ─── Mobile Health Chip Bar ─── */
+.budget-view__mobile-chips {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .budget-view__mobile-chips {
+    display: flex;
+    gap: var(--sp-2);
+    padding: 0 var(--sp-3) var(--sp-2);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .budget-view__mobile-chips::-webkit-scrollbar { display: none; }
+  .mobile-chip {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-1);
+    padding: var(--sp-1) var(--sp-3);
+    border-radius: var(--r-full);
+    font-size: var(--fs-xs);
+    font-weight: var(--fw-medium);
+    white-space: nowrap;
+    border: none;
+    cursor: pointer;
+    min-height: var(--touch-min);
+  }
+  .mobile-chip--negative {
+    background: var(--c-negative-bg);
+    color: var(--c-negative);
+  }
+  .mobile-chip--warning {
+    background: var(--c-warning-bg);
+    color: var(--c-warning);
+  }
+  .mobile-chip--muted {
+    background: color-mix(in srgb, var(--c-overlay0) 12%, transparent);
+    color: var(--c-overlay0);
+  }
 }
